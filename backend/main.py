@@ -1,31 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from datetime import datetime
 from pydantic import BaseModel
+
+from backend.database import Device, get_db
 
 
 app = FastAPI()
 
-devices = []
-
 class DeviceInput(BaseModel):
     id : str
     name : str
-
-class Device:
-
-    def __init__(self, id):
-        self.id = id
-        self.name = None
-        self.status = None
-        self.last_seen = None
-
-    def get_device_info(self):
-        return {
-            "id" : self.id,
-            "name" : self.name,
-            "status"  : self.status,
-            "last_seen" : self.last_seen
-        }
 
 
 @app.get("/")
@@ -34,39 +18,68 @@ def root():
 
 @app.get("/health")
 def get_health():
-    return{"Backend Status" : "Online"}
+    return {"status": "online"}
 
 @app.get("/devices")
-def get_devices():
+def get_devices(db = Depends(get_db)):
+
+    devices = db.query(Device).all()
 
     device_info = []
 
     for device in devices:
-        device_info.append(device.get_device_info())
+        device_info.append(
+        {
+            "id" : device.id,
+            "name" : device.name,
+            "status" : device.status,
+            "last_seen" : device.last_seen
+        }
+        )
 
     return device_info
 
 @app.post("/devices")
-def post_devices(payload : DeviceInput):
-    id = payload.id
-    name = payload.name
-
-    current_device = None
-
-    for device in devices:
-        if device.id == id:
-            current_device = device
-            break
+def post_device(payload : DeviceInput, db = Depends(get_db)):
     
-    if current_device is None:
-        current_device = Device(id)
-        devices.append(current_device)
+    device = db.query(Device).filter(Device.id == payload.id).first()
 
-    current_device.name = name
-    current_device.status = "online"
-    current_device.last_seen = datetime.now().isoformat()
+    if device is None:
+         device = Device(id = payload.id)
+         db.add(device)
+
+    device.name = payload.name
+    device.status = "ONLINE"
+    device.last_seen = datetime.now().isoformat()
+
+    db.commit()
 
     return {
-        "message" : "success",
-        "device" : current_device.get_device_info()
+        "message" : "SUCCESS",
+        "device": {
+            "id" : device.id,
+            "name" :  device.name,
+            "status" : device.status,
+            "last_seen" : device.last_seen
+        }
     }
+
+@app.delete("/devices")
+def delete_device(id : str, db = Depends(get_db)):
+
+    device = db.query(Device).filter(Device.id == id).first()
+
+    if device is None:
+        
+        return {
+            "message" : "DEVICE NOT FOUND"
+        }
+    
+    db.delete(device)
+    db.commit()
+
+    return {
+        "message" : "device deleted",
+        "id" : id
+    }
+    

@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 .vscode/
 WORKFLOW_COMMANDS.md
+DATABASE_FUNCTION_CALLS.md
+DATABASE_COMMANDS.md
+devices.db
