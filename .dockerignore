@@ -1,0 +1,9 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+devices.db
+test_devices.db
+tests
+development_documents
