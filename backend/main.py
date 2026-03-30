@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -39,6 +39,22 @@ def get_devices(db = Depends(get_db)):
 
     return device_info
 
+@app.get("/devices/{id}")
+def get_device(id : str, db = Depends(get_db)):
+
+    device = db.query(Device).filter(Device.id == id).first()
+
+    if device is None:
+        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+
+    return {
+        "id" : device.id,
+        "name" : device.name,
+        "status" : device.status,
+        "last_seen" : device.last_seen
+    }
+
+
 @app.post("/devices")
 def post_device(payload : DeviceInput, db = Depends(get_db)):
     
@@ -55,31 +71,26 @@ def post_device(payload : DeviceInput, db = Depends(get_db)):
     db.commit()
 
     return {
-        "message" : "SUCCESS",
-        "device": {
             "id" : device.id,
             "name" :  device.name,
             "status" : device.status,
             "last_seen" : device.last_seen
-        }
-    }
+     }
+    
 
-@app.delete("/devices")
+@app.delete("/devices/{id}")
 def delete_device(id : str, db = Depends(get_db)):
 
     device = db.query(Device).filter(Device.id == id).first()
 
     if device is None:
-        
-        return {
-            "message" : "DEVICE NOT FOUND"
-        }
+        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
     
     db.delete(device)
     db.commit()
 
     return {
-        "message" : "device deleted",
+        "message" : "DEVICE DELETED",
         "id" : id
     }
     
