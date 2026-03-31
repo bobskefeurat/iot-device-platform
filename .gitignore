@@ -2,7 +2,6 @@ __pycache__/
 *.pyc
 .venv/
 .vscode/
-WORKFLOW_COMMANDS.md
-DATABASE_FUNCTION_CALLS.md
-DATABASE_COMMANDS.md
 devices.db
+development_documents
+test_devices.db

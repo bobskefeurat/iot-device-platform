@@ -56,7 +56,7 @@ def get_device(id : str, db = Depends(get_db)):
 
 
 @app.post("/devices")
-def post_device(payload : DeviceInput, db = Depends(get_db)):
+def add_device(payload : DeviceInput, db = Depends(get_db)):
     
     device = db.query(Device).filter(Device.id == payload.id).first()
 
