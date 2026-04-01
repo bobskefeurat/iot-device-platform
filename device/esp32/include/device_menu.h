@@ -17,6 +17,7 @@ typedef struct {
     bool (*clear_calibration)(void);
     bool (*load_calibration)(uint16_t *dry_adc, uint16_t *wet_adc);
     void (*get_status)(device_menu_status_t *status);
+    void (*show_wifi_status)(void);
 } device_menu_actions_t;
 
 void device_menu_init(void);

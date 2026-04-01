@@ -5,11 +5,14 @@
 #include "esp_adc/adc_oneshot.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include "esp_mac.h"
 
 #include "device_menu.h"
 #include "moisture_calibration.h"
 #include "moisture_sensor.h"
 #include "serial_console.h"
+#include "wifi_manager.h"
+#include "backend_client.h"
 
 #define MOISTURE_SENSOR_PIN ADC_CHANNEL_7
 
@@ -98,6 +101,7 @@ static void serial_command_task(void *arg) {
         .clear_calibration = moisture_calibration_clear,
         .load_calibration = moisture_calibration_load,
         .get_status = get_menu_status,
+        .show_wifi_status = wifi_manager_print_status,
     };
 
     ESP_LOGI(TAG, "Serial menu ready");
@@ -123,13 +127,42 @@ void system_init(void) {
     }
     ESP_ERROR_CHECK(ret);
 
+    // Keep app logs visible while reducing noisy subsystem chatter in the monitor.
+    esp_log_level_set("wifi", ESP_LOG_WARN);
+    esp_log_level_set("HTTP_CLIENT", ESP_LOG_WARN);
+    esp_log_level_set("esp-tls", ESP_LOG_WARN);
+
     moisture_sensor_init(MOISTURE_SENSOR_PIN);
     device_menu_init();
     serial_console_init();
+    wifi_manager_init();
 }
 
 void app_main(void) {
     system_init();
+
+    uint8_t mac[6];
+    char device_id[18];
+    ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_WIFI_STA));
+    
+    const char *device_name = "ESP32";
+
+    snprintf(device_id, sizeof(device_id),
+         "%02X:%02X:%02X:%02X:%02X:%02X",
+         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    ESP_LOGI(TAG, "Waiting for WiFi connection...");
+    while(!wifi_manager_is_connected()){
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+
+    bool registered = register_device(device_id, device_name);
+
+    if (registered) {
+        ESP_LOGI(TAG, "Device registration succeeded");
+    } else {
+        ESP_LOGE(TAG, "Device registration failed");
+    }
 
     xTaskCreate(serial_command_task, "serial_command_task", 4096, NULL, 5, NULL);
     xTaskCreate(live_reading_task, "live_reading_task", 4096, NULL, 5, NULL);

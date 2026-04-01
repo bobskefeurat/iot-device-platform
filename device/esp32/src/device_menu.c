@@ -23,6 +23,7 @@ void device_menu_print_main(void) {
     ESP_LOGI(TAG, "3. Show calibration values");
     ESP_LOGI(TAG, "4. Start calibration");
     ESP_LOGI(TAG, "5. Clear calibration");
+    ESP_LOGI(TAG, "6. Show WiFi status");
     ESP_LOGI(TAG, "h. Show this menu again");
 }
 
@@ -96,6 +97,9 @@ static void handle_main_menu_input(const char *command,
             ESP_LOGW(TAG, "Calibration could not be cleared");
         }
 
+        device_menu_print_main();
+    } else if (strcmp(command, "6") == 0) {
+        actions->show_wifi_status();
         device_menu_print_main();
     } else if (strcmp(command, "h") == 0 || strcmp(command, "menu") == 0) {
         device_menu_print_main();
