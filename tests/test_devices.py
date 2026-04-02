@@ -1,4 +1,5 @@
 import pytest
+import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -9,6 +10,10 @@ from backend.database import Base, get_db
 #-------------------CONFIG-------------------
 
 TEST_DATABASE_URL = "sqlite:///./test_devices.db"
+
+TEST_DEVICE_ID = "AA:BB:CC:DD:EE:FF"
+TEST_DEVICE_NAME = "test-device"
+TEST_UNKNOWN_DEVICE_ID = "11:22:33:44:55:66"
 
 engine = create_engine(
     TEST_DATABASE_URL,
@@ -56,80 +61,100 @@ def test_get_devices():
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
-def test_add_device():
+def test_register_device():
 
-    device_id = "1111"
-    device_name = "test-add-device"
-
-    response = client.post(
-        "/devices", 
-        json= {
-            "id" : device_id, 
-            "name" : device_name
-        }
-    )
+    response = create_device()
 
     assert response.status_code == 200
 
     data = response.json()
 
-    assert data["id"] == device_id
-    assert data ["name"] == device_name
+    assert data["id"] == TEST_DEVICE_ID
+    assert data ["name"] == TEST_DEVICE_NAME
 
 def test_get_device():
 
-    device_id = "2222"
-    device_name = "test-get-device"
+    create_device()
 
-    client.post(
-        "/devices", 
-        json={
-            "id" : device_id,
-            "name" : device_name
-        }
-    )
-
-    response = client.get("/devices/"+ device_id)
+    response = client.get("/devices/"+ TEST_DEVICE_ID)
 
     assert response.status_code == 200
 
     data = response.json()
 
-    assert data["id"] == device_id
-    assert data["name"] == device_name
+    assert data["id"] == TEST_DEVICE_ID
+    assert data["name"] == TEST_DEVICE_NAME
 
-def test_get_device_not_found():
+def test_get_unknown_device():
 
-    response = client.get("/devices/0000")
+    response = client.get("/devices/"+ TEST_UNKNOWN_DEVICE_ID)
 
     assert response.status_code == 404
 
 def test_delete_device():
 
-    device_id = "3333"
-    device_name = "test-delete-device"
+    create_device()
 
-    client.post(
-        "/devices", 
-        json={
-            "id" : device_id, 
-            "name" : device_name
-        }
-    )
-
-    response = client.delete("/devices/" + device_id)
+    response = client.delete("/devices/" + TEST_DEVICE_ID)
 
     assert response.status_code == 200
 
     data = response.json()
 
-    assert data["id"] == device_id
+    assert data["id"] == TEST_DEVICE_ID
 
-def test_delete_device_not_found():
+def test_delete_unknown_device():
     
-    response = client.delete("/devices/0000")
+    response = client.delete("/devices/" + TEST_UNKNOWN_DEVICE_ID)
 
     assert response.status_code == 404
 
+def test_receive_heartbeat():
+
+    create_device()
+
+    response = client.post("/devices/" + TEST_DEVICE_ID + "/heartbeat")
+
+    assert response.status_code == 204
+
+def test_receive_heartbeat_unknown_device():
+
+    response = client.post("/devices/" + TEST_UNKNOWN_DEVICE_ID + "/heartbeat")
+
+    assert response.status_code == 404
+
+def test_last_seen():
+    
+    create_device()
+
+    device = client.get("/devices/" + TEST_DEVICE_ID)
+
+    data = device.json()
+
+    last_seen_first = data["last_seen"]
+
+    time.sleep(1)
+
+    client.post("/devices/" + TEST_DEVICE_ID + "/heartbeat")
+
+    device = client.get("/devices/" + TEST_DEVICE_ID)
+
+    data = device.json()
+
+    last_seen_second = data["last_seen"]
+
+    assert last_seen_first != last_seen_second
+
+    
+#-------------------HELPER-FUNCTIONS-------------------
+
+def create_device():
+
+    return client.post("/devices", 
+        json = {
+            "id" : TEST_DEVICE_ID,
+            "name" : TEST_DEVICE_NAME
+        }
+    )
 
 
