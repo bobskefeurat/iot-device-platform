@@ -11,6 +11,7 @@ alias gsw='git switch'
 alias gswc='git switch -c'
 alias gcm='git commit -m'
 alias gp='git push'
+alias menu='print_git_aliases'
 
 print_git_aliases() {
     cat <<'EOF'
@@ -29,6 +30,7 @@ Git aliases
   gswc   git switch -c
   gcm    git commit -m "<message>"
   gp     git push
+  menu   show this menu
 ========================================
 
 EOF

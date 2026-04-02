@@ -30,6 +30,7 @@ Session
 
 Helpers
   espusb      reconnect ESP32 USB from WSL
+  menu        show this menu
 ========================================
 
 EOF
