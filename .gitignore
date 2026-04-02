@@ -5,3 +5,4 @@ __pycache__/
 devices.db
 development_documents
 test_devices.db
+.codex
