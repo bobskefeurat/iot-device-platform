@@ -11,6 +11,7 @@ class DeviceInput(BaseModel):
     id : str
     name : str
 
+#----------------GENERAL----------------
 
 @app.get("/")
 def root():
@@ -19,6 +20,8 @@ def root():
 @app.get("/health")
 def get_health():
     return {"status": "online"}
+
+#----------------DEVICE----------------
 
 @app.get("/devices")
 def get_devices(db = Depends(get_db)):
@@ -56,7 +59,7 @@ def get_device(id : str, db = Depends(get_db)):
 
 
 @app.post("/devices")
-def add_device(payload : DeviceInput, db = Depends(get_db)):
+def register_device(payload : DeviceInput, db = Depends(get_db)):
     
     device = db.query(Device).filter(Device.id == payload.id).first()
 
@@ -77,6 +80,19 @@ def add_device(payload : DeviceInput, db = Depends(get_db)):
             "last_seen" : device.last_seen
      }
     
+@app.post("/devices/{id}/heartbeat", status_code = 204)
+def receive_device_heartbeat(id : str, db = Depends(get_db)):
+
+    device = db.query(Device).filter(Device.id == id).first()
+
+    if device is None:
+        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+    
+    device.last_seen = datetime.now().isoformat()
+
+    db.commit()
+
+    return 
 
 @app.delete("/devices/{id}")
 def delete_device(id : str, db = Depends(get_db)):
