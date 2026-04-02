@@ -2,7 +2,17 @@ name: Backend Tests
 
 on:
   push:
+    paths:
+      - "backend/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/backend-tests.yml"
   pull_request:
+    paths:
+      - "backend/**"
+      - "tests/**"
+      - "requirements.txt"
+      - ".github/workflows/backend-tests.yml"
 
 jobs:
   test:
@@ -25,4 +35,3 @@ jobs:
 
       - name: Run tests
         run: python -m pytest
-

@@ -2,7 +2,13 @@ name: ESP32 Build
 
 on:
   push:
+    paths:
+      - "device/esp32/**"
+      - ".github/workflows/esp32-build.yml"
   pull_request:
+    paths:
+      - "device/esp32/**"
+      - ".github/workflows/esp32-build.yml"
 
 jobs:
   build:
@@ -19,6 +25,10 @@ jobs:
 
       - name: Install PlatformIO
         run: pip install platformio
+
+      - name: Provide CI local config
+        working-directory: device/esp32
+        run: cp include/local_config.example.h include/local_config.h
 
       - name: Build ESP32 firmware
         working-directory: device/esp32
