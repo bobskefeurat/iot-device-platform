@@ -3,7 +3,7 @@
 .venv
 __pycache__
 *.pyc
-devices.db
-test_devices.db
+backend/data/devices.db
+tests/test_devices.db
 tests
 development_documents

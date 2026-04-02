@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 import time
 from sqlalchemy import create_engine
@@ -9,7 +10,9 @@ from backend.database import Base, get_db
 
 #-------------------CONFIG-------------------
 
-TEST_DATABASE_URL = "sqlite:///./test_devices.db"
+TESTS_DIR = Path(__file__).resolve().parent
+TEST_DATABASE_PATH = TESTS_DIR / "test_devices.db"
+TEST_DATABASE_URL = f"sqlite:///{TEST_DATABASE_PATH}"
 
 TEST_DEVICE_ID = "AA:BB:CC:DD:EE:FF"
 TEST_DEVICE_NAME = "test-device"
@@ -156,5 +159,4 @@ def create_device():
             "name" : TEST_DEVICE_NAME
         }
     )
-
 
