@@ -15,6 +15,7 @@ GIT_ALIASES="$REPO_ROOT/scripts/git-aliases.sh"
 TERMINAL_ALIASES="$REPO_ROOT/scripts/terminal-aliases.sh"
 TERMINAL_HELP="$REPO_ROOT/scripts/terminal-help.sh"
 ESP32_ALIASES="$REPO_ROOT/scripts/esp32-aliases.sh"
+BACKEND_PORT="8000"
 BACKEND_COMMAND="uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload"
 
 while [ $# -gt 0 ]; do
@@ -48,12 +49,18 @@ send_tmux_command() {
     tmux send-keys -t "$target" "$command" C-m
 }
 
+cleanup_backend_port() {
+    fuser -k "${BACKEND_PORT}/tcp" >/dev/null 2>&1 || true
+}
+
 if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     if [ "$DETACH_ONLY" -eq 0 ]; then
         attach_or_switch
     fi
     exit 0
 fi
+
+cleanup_backend_port
 
 tmux new-session -d -s "$SESSION_NAME" -n "$TERMINAL_WINDOW" -c "$REPO_ROOT"
 
