@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from sqlalchemy import create_engine, Column, String
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -19,16 +19,6 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
-
-class Device(Base):
-    __tablename__ = "devices"
-
-    id = Column(String, primary_key=True)
-    name = Column(String)
-    status = Column(String)
-    last_seen = Column(String)
-
-Base.metadata.create_all(bind=engine)
 
 def get_db():
     db = SessionLocal()

@@ -30,6 +30,7 @@ Session
 
 Helpers
   espusb      reconnect ESP32 USB from WSL
+  espproxy    refresh Windows -> WSL backend proxy
   menu        show this menu
 ========================================
 

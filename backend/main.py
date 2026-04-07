@@ -1,15 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException
 from datetime import datetime
-from pydantic import BaseModel
 
-from backend.database import Device, get_db
+from backend.database import Base, engine, get_db
+from backend.models import Device
+from backend.schemas import DeviceInput
 
 
 app = FastAPI()
-
-class DeviceInput(BaseModel):
-    id : str
-    name : str
+Base.metadata.create_all(bind=engine)
 
 #----------------GENERAL----------------
 
