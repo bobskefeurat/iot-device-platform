@@ -14,6 +14,5 @@ class Device(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String)
-    status = Column(String)
     last_seen = Column(String)
 

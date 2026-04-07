@@ -67,7 +67,6 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
          db.add(device)
 
     device.name = payload.name
-    device.status = "ONLINE"
     device.last_seen = datetime.now().isoformat()
 
     db.commit()
