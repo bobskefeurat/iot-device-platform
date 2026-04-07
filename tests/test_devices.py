@@ -1,12 +1,13 @@
 from pathlib import Path
+from datetime import datetime, timedelta
 import pytest
-import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
-from backend.main import app
+from backend.main import app, HEARTBEAT_TIMEOUT
 from backend.database import Base, get_db
+from backend.models import Device
 
 #-------------------CONFIG-------------------
 
@@ -126,8 +127,18 @@ def test_receive_heartbeat_unknown_device():
 
     assert response.status_code == 404
 
-def test_last_seen():
+def test_registered_device_is_online():
     
+    create_device()
+
+    device = client.get("/devices/" + TEST_DEVICE_ID)
+
+    data = device.json()
+
+    assert data["status"] == "ONLINE"
+
+def test_heartbeat_keeps_device_online():
+
     create_device()
 
     device = client.get("/devices/" + TEST_DEVICE_ID)
@@ -136,19 +147,34 @@ def test_last_seen():
 
     last_seen_first = data["last_seen"]
 
-    time.sleep(1)
-
     client.post("/devices/" + TEST_DEVICE_ID + "/heartbeat")
 
     device = client.get("/devices/" + TEST_DEVICE_ID)
-
+    
     data = device.json()
 
     last_seen_second = data["last_seen"]
 
     assert last_seen_first != last_seen_second
+    assert data["status"] == "ONLINE"
 
-    
+def test_timed_out_device_is_offline():
+
+    create_device()
+
+    db = TestingSessionLocal()
+    try:
+        device = db.query(Device).filter(Device.id == TEST_DEVICE_ID).first()
+        device.last_seen = (datetime.now() - HEARTBEAT_TIMEOUT - timedelta(seconds=1)).isoformat()
+        db.commit()
+    finally:
+        db.close()
+
+    device = client.get("/devices/" + TEST_DEVICE_ID)
+
+    data = device.json()
+
+    assert data["status"] == "OFFLINE"
 #-------------------HELPER-FUNCTIONS-------------------
 
 def create_device():
@@ -159,4 +185,3 @@ def create_device():
             "name" : TEST_DEVICE_NAME
         }
     )
-

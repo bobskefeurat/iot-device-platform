@@ -1,10 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from backend.database import Base, engine, get_db
 from backend.models import Device
 from backend.schemas import DeviceInput
 
+HEARTBEAT_TIMEOUT = timedelta(seconds=90)
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -33,7 +34,7 @@ def get_devices(db = Depends(get_db)):
         {
             "id" : device.id,
             "name" : device.name,
-            "status" : device.status,
+            "status": device_status(device.last_seen),
             "last_seen" : device.last_seen
         }
         )
@@ -51,7 +52,7 @@ def get_device(id : str, db = Depends(get_db)):
     return {
         "id" : device.id,
         "name" : device.name,
-        "status" : device.status,
+        "status": device_status(device.last_seen),
         "last_seen" : device.last_seen
     }
 
@@ -74,7 +75,7 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
     return {
             "id" : device.id,
             "name" :  device.name,
-            "status" : device.status,
+            "status": device_status(device.last_seen),
             "last_seen" : device.last_seen
      }
     
@@ -107,4 +108,20 @@ def delete_device(id : str, db = Depends(get_db)):
         "message" : "DEVICE DELETED",
         "id" : id
     }
-    
+
+
+#----------------HELPERS----------------
+
+def device_status(last_seen: str | None) -> str:
+    if not last_seen:
+        return "OFFLINE"
+
+    try:
+        last_seen_dt = datetime.fromisoformat(last_seen)
+    except ValueError:
+        return "OFFLINE"
+
+    if datetime.now() - last_seen_dt <= HEARTBEAT_TIMEOUT:
+        return "ONLINE"
+
+    return "OFFLINE"

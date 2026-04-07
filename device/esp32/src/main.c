@@ -16,6 +16,8 @@
 
 #define MOISTURE_SENSOR_PIN ADC_CHANNEL_7
 
+#define HEARTBEAT_INTERVAL_MS 30000
+
 static const char *TAG = "PlantStation";
 static volatile bool calibration_in_progress = false;
 static volatile bool live_reading_active = false;
@@ -62,6 +64,21 @@ static void live_reading_task(void *arg) {
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
+
+static void heartbeat_task(void *arg) {
+    const char *device_id = (const char *)arg;
+
+    while (1) {
+        vTaskDelay(pdMS_TO_TICKS(HEARTBEAT_INTERVAL_MS));
+
+        if (!wifi_manager_is_connected()) {
+            continue;
+        }
+
+        send_heartbeat(device_id);
+    }
+}
+
 
 static void calibration_task(void *arg) {
     (void)arg;
@@ -166,6 +183,14 @@ void app_main(void) {
 
     xTaskCreate(serial_command_task, "serial_command_task", 4096, NULL, 5, NULL);
     xTaskCreate(live_reading_task, "live_reading_task", 4096, NULL, 5, NULL);
+
+    if (registered) {
+    ESP_LOGI(TAG, "Device registration succeeded");
+    xTaskCreate(heartbeat_task, "heartbeat_task", 4096, device_id, 5, NULL);
+    } else {
+        ESP_LOGE(TAG, "Device registration failed");
+    }
+
 
     ESP_LOGI(TAG, "PlantStation started");
 
