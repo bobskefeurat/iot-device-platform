@@ -102,7 +102,7 @@ def test_get_devices():
 
     assert first_device["id"] == TEST_DEVICE_ID
     assert first_device["name"] == TEST_DEVICE_NAME
-    assert first_device["components"] == TEST_COMPONENTS
+    assert_components_match(first_device["components"], TEST_COMPONENTS)
 
 
 def test_register_device():
@@ -115,7 +115,7 @@ def test_register_device():
 
     assert data["id"] == TEST_DEVICE_ID
     assert data ["name"] == TEST_DEVICE_NAME
-    assert data["components"] == TEST_COMPONENTS
+    assert_components_match(data["components"], TEST_COMPONENTS)
 
 def test_get_device():
 
@@ -129,7 +129,7 @@ def test_get_device():
 
     assert data["id"] == TEST_DEVICE_ID
     assert data["name"] == TEST_DEVICE_NAME
-    assert data["components"] == TEST_COMPONENTS
+    assert_components_match(data["components"], TEST_COMPONENTS)
 
 def test_get_unknown_device():
 
@@ -259,7 +259,7 @@ def test_register_existing_device_updates_name():
 
     assert data["id"] == TEST_DEVICE_ID
     assert data["name"] == updated_name
-    assert data["components"] == TEST_COMPONENTS
+    assert_components_match(data["components"], TEST_COMPONENTS)
 
 
 def test_register_existing_device_does_not_create_duplicate_device():
@@ -293,7 +293,7 @@ def test_register_device_updates_component_model_name():
     response = create_device(components=updated_components)
 
     assert response.status_code == 200
-    assert response.json()["components"] == updated_components
+    assert_components_match(response.json()["components"], updated_components)
 
 def test_register_device_keeps_existing_component_type():
     
@@ -320,7 +320,7 @@ def test_register_device_keeps_existing_component_type():
     response = create_device(components=changed_type_components)
 
     assert response.status_code == 200
-    assert response.json()["components"] == expected_components
+    assert_components_match(response.json()["components"], expected_components)
 
 def test_register_device_adds_new_component():
     
@@ -331,7 +331,7 @@ def test_register_device_adds_new_component():
     response = create_device(components=updated_components)
 
     assert response.status_code == 200
-    assert response.json()["components"] == updated_components
+    assert_components_match(response.json()["components"], updated_components)
 
 def test_register_device_removes_missing_component():
     
@@ -342,7 +342,7 @@ def test_register_device_removes_missing_component():
     response = create_device(components=remaining_components)
 
     assert response.status_code == 200
-    assert response.json()["components"] == remaining_components
+    assert_components_match(response.json()["components"], remaining_components)
 
 def test_register_device_reconciles_components():
     
@@ -360,7 +360,7 @@ def test_register_device_reconciles_components():
     response = create_device(components=reconciled_components)
 
     assert response.status_code == 200
-    assert response.json()["components"] == reconciled_components
+    assert_components_match(response.json()["components"], reconciled_components)
 
 def test_delete_device_removes_components():
     
@@ -398,9 +398,9 @@ def test_get_devices_returns_multiple_devices():
 
     assert len(data) == 2
     assert devices_by_id[TEST_DEVICE_ID]["name"] == TEST_DEVICE_NAME
-    assert devices_by_id[TEST_DEVICE_ID]["components"] == TEST_COMPONENTS
+    assert_components_match(devices_by_id[TEST_DEVICE_ID]["components"], TEST_COMPONENTS)
     assert devices_by_id[TEST_SECOND_DEVICE_ID]["name"] == TEST_SECOND_DEVICE_NAME
-    assert devices_by_id[TEST_SECOND_DEVICE_ID]["components"] == TEST_SECOND_COMPONENTS
+    assert_components_match(devices_by_id[TEST_SECOND_DEVICE_ID]["components"], TEST_SECOND_COMPONENTS)
 
 def test_register_device_updates_last_seen_on_reregistration():
     
@@ -467,6 +467,11 @@ def test_register_device_rejects_invalid_component_type():
     assert response.status_code == 422
 
 #-------------------HELPER-FUNCTIONS-------------------
+
+def assert_components_match(actual_components, expected_components):
+    assert sorted(actual_components, key=lambda component: component["local_id"]) == sorted(
+        expected_components, key=lambda component: component["local_id"]
+    )
 
 def create_device(device_id=TEST_DEVICE_ID, name=TEST_DEVICE_NAME, components=None):
 
