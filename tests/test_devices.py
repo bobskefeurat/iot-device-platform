@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app, HEARTBEAT_TIMEOUT
 from backend.database import Base, get_db
-from backend.models import Device
+from backend.models import Device, Component
 
 #-------------------CONFIG-------------------
 
@@ -17,7 +17,34 @@ TEST_DATABASE_URL = f"sqlite:///{TEST_DATABASE_PATH}"
 
 TEST_DEVICE_ID = "AA:BB:CC:DD:EE:FF"
 TEST_DEVICE_NAME = "test-device"
+TEST_SECOND_DEVICE_ID = "66:55:44:33:22:11"
+TEST_SECOND_DEVICE_NAME = "second-test-device"
 TEST_UNKNOWN_DEVICE_ID = "11:22:33:44:55:66"
+TEST_COMPONENTS = [
+    {
+        "local_id": "pump_1",
+        "model_name": "pump-model-a",
+        "component_type": "actuator",
+    },
+    {
+        "local_id": "moisture_sensor_1",
+        "model_name": "sensor-model-a",
+        "component_type": "sensor",
+    },
+]
+TEST_SECOND_COMPONENTS = [
+    {
+        "local_id": "pump_1",
+        "model_name": "pump-model-b",
+        "component_type": "actuator",
+    },
+]
+TEST_ADDED_COMPONENT = {
+    "local_id": "water_level_sensor_1",
+    "model_name": "level-sensor-model-a",
+    "component_type": "sensor",
+}
+
 
 engine = create_engine(
     TEST_DATABASE_URL,
@@ -60,10 +87,23 @@ def test_get_health():
 
 def test_get_devices():
 
+    create_device()
+
     response = client.get("/devices")
 
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+
+    data = response.json()
+
+    assert isinstance(data, list)
+    assert len(data) == 1
+
+    first_device = data[0]
+
+    assert first_device["id"] == TEST_DEVICE_ID
+    assert first_device["name"] == TEST_DEVICE_NAME
+    assert first_device["components"] == TEST_COMPONENTS
+
 
 def test_register_device():
 
@@ -75,6 +115,7 @@ def test_register_device():
 
     assert data["id"] == TEST_DEVICE_ID
     assert data ["name"] == TEST_DEVICE_NAME
+    assert data["components"] == TEST_COMPONENTS
 
 def test_get_device():
 
@@ -88,6 +129,7 @@ def test_get_device():
 
     assert data["id"] == TEST_DEVICE_ID
     assert data["name"] == TEST_DEVICE_NAME
+    assert data["components"] == TEST_COMPONENTS
 
 def test_get_unknown_device():
 
@@ -175,13 +217,266 @@ def test_timed_out_device_is_offline():
     data = device.json()
 
     assert data["status"] == "OFFLINE"
+
+#-------------------SYNC-TESTS-TO-FILL-------------------
+
+def test_register_device_requires_components():
+    
+    response = client.post("/devices", 
+        json = {
+            "id" : TEST_DEVICE_ID,
+            "name" : TEST_DEVICE_NAME,
+        }
+    )
+
+    assert response.status_code == 422
+
+def test_register_device_allows_empty_components():
+    
+    response = client.post("/devices", 
+        json = {
+            "id" : TEST_DEVICE_ID,
+            "name" : TEST_DEVICE_NAME,
+            "components" : []
+        }
+    )
+
+    assert response.status_code == 200
+    assert response.json()["components"] == []
+
+
+def test_register_existing_device_updates_name():
+
+    create_device()
+
+    updated_name = "updated-device-name"
+
+    response = create_device(name=updated_name)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == TEST_DEVICE_ID
+    assert data["name"] == updated_name
+    assert data["components"] == TEST_COMPONENTS
+
+
+def test_register_existing_device_does_not_create_duplicate_device():
+    
+    create_device()
+
+    response = create_device()
+
+    assert response.status_code == 200
+
+    db = TestingSessionLocal()
+    try:
+        assert db.query(Device).count() == 1
+        assert db.query(Component).filter(Component.device_id == TEST_DEVICE_ID).count() == len(TEST_COMPONENTS)
+    finally:
+        db.close()
+
+def test_register_device_updates_component_model_name():
+    
+    create_device()
+
+    updated_components = [
+        {
+            "local_id": TEST_COMPONENTS[0]["local_id"],
+            "model_name": "pump-model-b",
+            "component_type": TEST_COMPONENTS[0]["component_type"],
+        },
+        TEST_COMPONENTS[1],
+    ]
+
+    response = create_device(components=updated_components)
+
+    assert response.status_code == 200
+    assert response.json()["components"] == updated_components
+
+def test_register_device_keeps_existing_component_type():
+    
+    create_device()
+
+    changed_type_components = [
+        {
+            "local_id": TEST_COMPONENTS[0]["local_id"],
+            "model_name": "pump-model-b",
+            "component_type": "sensor",
+        },
+        TEST_COMPONENTS[1],
+    ]
+
+    expected_components = [
+        {
+            "local_id": TEST_COMPONENTS[0]["local_id"],
+            "model_name": "pump-model-b",
+            "component_type": TEST_COMPONENTS[0]["component_type"],
+        },
+        TEST_COMPONENTS[1],
+    ]
+
+    response = create_device(components=changed_type_components)
+
+    assert response.status_code == 200
+    assert response.json()["components"] == expected_components
+
+def test_register_device_adds_new_component():
+    
+    create_device()
+
+    updated_components = TEST_COMPONENTS + [TEST_ADDED_COMPONENT]
+
+    response = create_device(components=updated_components)
+
+    assert response.status_code == 200
+    assert response.json()["components"] == updated_components
+
+def test_register_device_removes_missing_component():
+    
+    create_device()
+
+    remaining_components = [TEST_COMPONENTS[0]]
+
+    response = create_device(components=remaining_components)
+
+    assert response.status_code == 200
+    assert response.json()["components"] == remaining_components
+
+def test_register_device_reconciles_components():
+    
+    create_device()
+
+    reconciled_components = [
+        {
+            "local_id": TEST_COMPONENTS[0]["local_id"],
+            "model_name": "pump-model-b",
+            "component_type": TEST_COMPONENTS[0]["component_type"],
+        },
+        TEST_ADDED_COMPONENT,
+    ]
+
+    response = create_device(components=reconciled_components)
+
+    assert response.status_code == 200
+    assert response.json()["components"] == reconciled_components
+
+def test_delete_device_removes_components():
+    
+    create_device()
+
+    response = client.delete("/devices/" + TEST_DEVICE_ID)
+
+    assert response.status_code == 200
+
+    db = TestingSessionLocal()
+    try:
+        assert db.query(Device).filter(Device.id == TEST_DEVICE_ID).first() is None
+        assert db.query(Component).filter(Component.device_id == TEST_DEVICE_ID).count() == 0
+    finally:
+        db.close()
+
+def test_get_devices_returns_multiple_devices():
+    
+    create_device()
+
+    second_response = create_device(
+        device_id=TEST_SECOND_DEVICE_ID,
+        name=TEST_SECOND_DEVICE_NAME,
+        components=TEST_SECOND_COMPONENTS,
+    )
+
+    assert second_response.status_code == 200
+
+    response = client.get("/devices")
+
+    assert response.status_code == 200
+
+    data = response.json()
+    devices_by_id = {device["id"]: device for device in data}
+
+    assert len(data) == 2
+    assert devices_by_id[TEST_DEVICE_ID]["name"] == TEST_DEVICE_NAME
+    assert devices_by_id[TEST_DEVICE_ID]["components"] == TEST_COMPONENTS
+    assert devices_by_id[TEST_SECOND_DEVICE_ID]["name"] == TEST_SECOND_DEVICE_NAME
+    assert devices_by_id[TEST_SECOND_DEVICE_ID]["components"] == TEST_SECOND_COMPONENTS
+
+def test_register_device_updates_last_seen_on_reregistration():
+    
+    create_device()
+
+    first_response = client.get("/devices/" + TEST_DEVICE_ID)
+    first_last_seen = first_response.json()["last_seen"]
+
+    response = create_device()
+
+    assert response.status_code == 200
+    assert response.json()["last_seen"] != first_last_seen
+
+def test_register_device_rejects_duplicate_local_ids_in_payload():
+    
+    duplicate_components = [
+        TEST_COMPONENTS[0],
+        {
+            "local_id": TEST_COMPONENTS[0]["local_id"],
+            "model_name": "pump-model-b",
+            "component_type": TEST_COMPONENTS[0]["component_type"],
+        },
+    ]
+
+    response = create_device(components=duplicate_components)
+
+    assert response.status_code == 422
+
+def test_register_device_rejects_missing_component_field():
+    
+    response = client.post(
+        "/devices",
+        json={
+            "id": TEST_DEVICE_ID,
+            "name": TEST_DEVICE_NAME,
+            "components": [
+                {
+                    "local_id": "pump_1",
+                    "component_type": "actuator",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 422
+
+def test_register_device_rejects_invalid_component_type():
+    
+    response = client.post(
+        "/devices",
+        json={
+            "id": TEST_DEVICE_ID,
+            "name": TEST_DEVICE_NAME,
+            "components": [
+                {
+                    "local_id": "pump_1",
+                    "model_name": "pump-model-a",
+                    "component_type": "invalid",
+                }
+            ],
+        },
+    )
+
+    assert response.status_code == 422
+
 #-------------------HELPER-FUNCTIONS-------------------
 
-def create_device():
+def create_device(device_id=TEST_DEVICE_ID, name=TEST_DEVICE_NAME, components=None):
+
+    if components is None:
+        components = TEST_COMPONENTS
 
     return client.post("/devices", 
         json = {
-            "id" : TEST_DEVICE_ID,
-            "name" : TEST_DEVICE_NAME
+            "id" : device_id,
+            "name" : name,
+            "components" : components
         }
     )

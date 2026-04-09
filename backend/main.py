@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from datetime import datetime, timedelta
 
 from backend.database import Base, engine, get_db
-from backend.models import Device
+from backend.models import Device, Component
 from backend.schemas import DeviceInput
 
 HEARTBEAT_TIMEOUT = timedelta(seconds=90)
@@ -30,14 +30,7 @@ def get_devices(db = Depends(get_db)):
     device_info = []
 
     for device in devices:
-        device_info.append(
-        {
-            "id" : device.id,
-            "name" : device.name,
-            "status": device_status(device.last_seen),
-            "last_seen" : device.last_seen
-        }
-        )
+        device_info.append(build_device_response(device))
 
     return device_info
 
@@ -49,12 +42,7 @@ def get_device(id : str, db = Depends(get_db)):
     if device is None:
         raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
 
-    return {
-        "id" : device.id,
-        "name" : device.name,
-        "status": device_status(device.last_seen),
-        "last_seen" : device.last_seen
-    }
+    return build_device_response(device)
 
 
 @app.post("/devices")
@@ -67,16 +55,14 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
          db.add(device)
 
     device.name = payload.name
+
+    sync_device_components(device, payload.components)                    
+
     device.last_seen = datetime.now().isoformat()
 
     db.commit()
 
-    return {
-            "id" : device.id,
-            "name" :  device.name,
-            "status": device_status(device.last_seen),
-            "last_seen" : device.last_seen
-     }
+    return build_device_response(device)
     
 @app.post("/devices/{id}/heartbeat", status_code = 204)
 def receive_device_heartbeat(id : str, db = Depends(get_db)):
@@ -108,6 +94,37 @@ def delete_device(id : str, db = Depends(get_db)):
         "id" : id
     }
 
+#----------------DEVICE-HELPERS----------------
+
+def sync_device_components(device, payload_components):
+    
+    current_components = {}
+    incoming_local_ids = set()
+
+    for component in device.components:
+        current_components[component.local_id] = component
+
+    for incoming_component in payload_components:
+
+        existing_component = current_components.get(incoming_component.local_id)
+
+        incoming_local_ids.add(incoming_component.local_id)
+
+        if existing_component is None:
+            device.components.append(
+                Component(
+                    local_id = incoming_component.local_id,
+                    model_name = incoming_component.model_name,
+                    component_type = incoming_component.component_type
+                )
+            )
+        else:
+            if existing_component.model_name != incoming_component.model_name:
+                existing_component.model_name = incoming_component.model_name
+
+    for local_id, component in current_components.items():
+        if local_id not in incoming_local_ids:
+            device.components.remove(component)
 
 #----------------HELPERS----------------
 
@@ -124,3 +141,21 @@ def device_status(last_seen: str | None) -> str:
         return "ONLINE"
 
     return "OFFLINE"
+
+def build_device_response(device):
+    
+    return {
+
+            "id" : device.id,
+            "name" :  device.name,
+            "status": device_status(device.last_seen),
+            "last_seen" : device.last_seen,
+            "components" : [
+                {
+                    "local_id" : component.local_id,
+                    "model_name" : component.model_name,
+                    "component_type" : component.component_type
+                }
+                for component in device.components
+            ]
+     }
