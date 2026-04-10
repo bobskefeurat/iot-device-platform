@@ -53,8 +53,8 @@ static bool build_register_device_payload(
         written = snprintf(
             components_json + offset,
             remaining,
-            "{\"local_id\":\"%s\",\"model_name\":\"%s\",\"component_type\":\"%s\"}",
-            components[i].local_id,
+            "{\"component_local_id\":\"%s\",\"model_name\":\"%s\",\"component_type\":\"%s\"}",
+            components[i].component_local_id,
             components[i].model_name,
             components[i].component_type
         );

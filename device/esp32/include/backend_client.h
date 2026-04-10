@@ -5,7 +5,7 @@
 
 typedef struct
 {
-    const char *local_id;
+    const char *component_local_id;
     const char *model_name;
     const char *component_type;
 } backend_component_t;

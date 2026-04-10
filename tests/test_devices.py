@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -207,7 +207,7 @@ def test_timed_out_device_is_offline():
     db = TestingSessionLocal()
     try:
         device = db.query(Device).filter(Device.id == TEST_DEVICE_ID).first()
-        device.last_seen = (datetime.now() - HEARTBEAT_TIMEOUT - timedelta(seconds=1)).isoformat()
+        device.last_seen = datetime.now(timezone.utc) - HEARTBEAT_TIMEOUT - timedelta(seconds=1)
         db.commit()
     finally:
         db.close()
@@ -218,7 +218,7 @@ def test_timed_out_device_is_offline():
 
     assert data["status"] == "OFFLINE"
 
-#-------------------SYNC-TESTS-TO-FILL-------------------
+#-------------------SYNC-TESTS-------------------
 
 def test_register_device_requires_components():
     
@@ -413,21 +413,6 @@ def test_register_device_updates_last_seen_on_reregistration():
 
     assert response.status_code == 200
     assert response.json()["last_seen"] != first_last_seen
-
-def test_register_device_rejects_duplicate_local_ids_in_payload():
-    
-    duplicate_components = [
-        TEST_COMPONENTS[0],
-        {
-            "local_id": TEST_COMPONENTS[0]["local_id"],
-            "model_name": "pump-model-b",
-            "component_type": TEST_COMPONENTS[0]["component_type"],
-        },
-    ]
-
-    response = create_device(components=duplicate_components)
-
-    assert response.status_code == 422
 
 def test_register_device_rejects_missing_component_field():
     

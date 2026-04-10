@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 
 class ComponentInput(BaseModel):
     local_id : str
@@ -12,15 +12,7 @@ class DeviceInput(BaseModel):
     name: str
     components : list[ComponentInput]
 
-    @field_validator("components")
-    @classmethod
-    def validate_unique_component_local_ids(cls, components: list[ComponentInput]):
-        seen_local_ids = set()
-
-        for component in components:
-            if component.local_id in seen_local_ids:
-                raise ValueError("component local_id values must be unique")
-
-            seen_local_ids.add(component.local_id)
-
-        return components
+class MeasurementInput(BaseModel):
+    component_local_id :str
+    mean_adc :str
+    moisture_percent :str

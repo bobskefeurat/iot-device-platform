@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String
+from sqlalchemy import Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 from backend.database import Base
 
@@ -18,8 +18,7 @@ class Device(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String)
-    last_seen = Column(String)
+    last_seen = Column(DateTime(timezone=True))
 
     components = relationship("Component", back_populates="device", cascade="all, delete-orphan")
-
 

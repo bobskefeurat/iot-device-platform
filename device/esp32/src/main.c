@@ -144,7 +144,6 @@ void system_init(void) {
     }
     ESP_ERROR_CHECK(ret);
 
-    // Keep app logs visible while reducing noisy subsystem chatter in the monitor.
     esp_log_level_set("wifi", ESP_LOG_WARN);
     esp_log_level_set("HTTP_CLIENT", ESP_LOG_WARN);
     esp_log_level_set("esp-tls", ESP_LOG_WARN);
@@ -165,7 +164,7 @@ void app_main(void) {
     const char *device_name = "ESP32";
     const backend_component_t device_components[] = {
         {
-            .local_id = "moisture_sensor_1",
+            .component_local_id = "moisture_sensor_1",
             .model_name = "Capacitive Soil Moisture Sensor V2.0.0",
             .component_type = "sensor",
         },

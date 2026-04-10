@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from backend.database import Base, engine, get_db
 from backend.models import Device, Component
-from backend.schemas import DeviceInput
+from backend.schemas import DeviceInput, MeasurementInput
 
 HEARTBEAT_TIMEOUT = timedelta(seconds=90)
 
@@ -58,7 +58,7 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
 
     sync_device_components(device, payload.components)                    
 
-    device.last_seen = datetime.now().isoformat()
+    device.last_seen = utc_now()
 
     db.commit()
 
@@ -72,7 +72,7 @@ def receive_device_heartbeat(id : str, db = Depends(get_db)):
     if device is None:
         raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
     
-    device.last_seen = datetime.now().isoformat()
+    device.last_seen = utc_now()
 
     db.commit()
 
@@ -94,6 +94,19 @@ def delete_device(id : str, db = Depends(get_db)):
         "id" : id
     }
 
+@app.post("/devices/{id}/measurement")
+def receive_measurement(id : str, payload : MeasurementInput, db = Depends(get_db)):
+    
+    device = db.query(Device).filter(Device.id == id).first()
+
+    if device is None:
+        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+
+    
+    
+    
+    
+    return
 #----------------DEVICE-HELPERS----------------
 
 def sync_device_components(device, payload_components):
@@ -128,16 +141,25 @@ def sync_device_components(device, payload_components):
 
 #----------------HELPERS----------------
 
-def device_status(last_seen: str | None) -> str:
-    if not last_seen:
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+def normalize_utc_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+
+    return value.astimezone(timezone.utc)
+
+def device_status(last_seen: datetime | None) -> str:
+    last_seen_dt = normalize_utc_datetime(last_seen)
+
+    if not last_seen_dt:
         return "OFFLINE"
 
-    try:
-        last_seen_dt = datetime.fromisoformat(last_seen)
-    except ValueError:
-        return "OFFLINE"
-
-    if datetime.now() - last_seen_dt <= HEARTBEAT_TIMEOUT:
+    if utc_now() - last_seen_dt <= HEARTBEAT_TIMEOUT:
         return "ONLINE"
 
     return "OFFLINE"
@@ -149,7 +171,7 @@ def build_device_response(device):
             "id" : device.id,
             "name" :  device.name,
             "status": device_status(device.last_seen),
-            "last_seen" : device.last_seen,
+            "last_seen" : normalize_utc_datetime(device.last_seen),
             "components" : [
                 {
                     "local_id" : component.local_id,
