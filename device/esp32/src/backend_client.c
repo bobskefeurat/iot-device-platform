@@ -10,11 +10,102 @@
 
 static const char *TAG = "backend-client";
 
-bool register_device(const char *id, const char *name) {
+static bool build_register_device_payload(
+    char *payload,
+    size_t payload_size,
+    const char *id,
+    const char *name,
+    const backend_component_t *components,
+    size_t component_count
+) {
+    char components_json[512];
+    size_t offset = 0;
+    size_t remaining = sizeof(components_json) - offset;
+    int written = snprintf(
+        components_json + offset,
+        remaining,
+        "["
+    );
 
-    char payload[128];
+    if (written < 0 || (size_t)written >= remaining) {
+        return false;
+    }
 
-    snprintf(payload, sizeof(payload), "{\"id\":\"%s\",\"name\":\"%s\"}", id, name);
+    offset += (size_t)written;
+
+    for (size_t i = 0; i < component_count; i++) {
+        if (i > 0) {
+            remaining = sizeof(components_json) - offset;
+            written = snprintf(
+                components_json + offset,
+                remaining,
+                ","
+            );
+
+            if (written < 0 || (size_t)written >= remaining) {
+                return false;
+            }
+
+            offset += (size_t)written;
+        }
+
+        remaining = sizeof(components_json) - offset;
+        written = snprintf(
+            components_json + offset,
+            remaining,
+            "{\"local_id\":\"%s\",\"model_name\":\"%s\",\"component_type\":\"%s\"}",
+            components[i].local_id,
+            components[i].model_name,
+            components[i].component_type
+        );
+
+        if (written < 0 || (size_t)written >= remaining) {
+            return false;
+        }
+
+        offset += (size_t)written;
+    }
+
+    remaining = sizeof(components_json) - offset;
+    written = snprintf(
+        components_json + offset,
+        remaining,
+        "]"
+    );
+
+    if (written < 0 || (size_t)written >= remaining) {
+        return false;
+    }
+
+    written = snprintf(
+        payload,
+        payload_size,
+        "{\"id\":\"%s\",\"name\":\"%s\",\"components\":%s}",
+        id,
+        name,
+        components_json
+    );
+
+    if (written < 0 || (size_t)written >= payload_size) {
+        return false;
+    }
+
+    return true;
+}
+
+
+bool register_device(
+    const char *id, 
+    const char *name, 
+    const backend_component_t *components,
+    size_t component_count) {
+
+    char payload[768];
+
+    if (!build_register_device_payload(payload, sizeof(payload), id, name, components, component_count)) {
+        ESP_LOGE(TAG, "Failed to build device registration payload");
+        return false;
+    }
 
     esp_http_client_config_t config = {
         .url = BACKEND_URL,
@@ -68,4 +159,3 @@ bool send_heartbeat(const char *id) {
     esp_http_client_cleanup(client);
     return false;
 }
-

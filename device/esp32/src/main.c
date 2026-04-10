@@ -163,6 +163,14 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_WIFI_STA));
     
     const char *device_name = "ESP32";
+    const backend_component_t device_components[] = {
+        {
+            .local_id = "moisture_sensor_1",
+            .model_name = "Capacitive Soil Moisture Sensor V2.0.0",
+            .component_type = "sensor",
+        },
+    };
+    const size_t component_count = sizeof(device_components) / sizeof(device_components[0]);
 
     snprintf(device_id, sizeof(device_id),
          "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -173,7 +181,7 @@ void app_main(void) {
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 
-    bool registered = register_device(device_id, device_name);
+    bool registered = register_device(device_id, device_name, device_components, component_count);
 
     if (registered) {
         ESP_LOGI(TAG, "Device registration succeeded");
