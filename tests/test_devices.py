@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import app, HEARTBEAT_TIMEOUT
 from backend.database import Base, get_db
-from backend.models import Device, Component
+from backend.models import Device, Component, Measurement
 
 #-------------------CONFIG-------------------
 
@@ -20,6 +20,8 @@ TEST_DEVICE_NAME = "test-device"
 TEST_SECOND_DEVICE_ID = "66:55:44:33:22:11"
 TEST_SECOND_DEVICE_NAME = "second-test-device"
 TEST_UNKNOWN_DEVICE_ID = "11:22:33:44:55:66"
+TEST_COMPONENT_LOCAL_ID = "moisture_sensor_1"
+TEST_UNKNOWN_COMPONENT_LOCAL_ID = "unknown_sensor_1"
 TEST_COMPONENTS = [
     {
         "local_id": "pump_1",
@@ -169,6 +171,127 @@ def test_receive_heartbeat_unknown_device():
 
     assert response.status_code == 404
 
+def test_receive_measurement():
+
+    create_device()
+
+    response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": 1234,
+            "moisture_percent": 56,
+        },
+    )
+
+    assert response.status_code == 204
+
+    db = TestingSessionLocal()
+    try:
+        measurement = db.query(Measurement).filter(
+            Measurement.device_id == TEST_DEVICE_ID,
+            Measurement.component_local_id == TEST_COMPONENT_LOCAL_ID,
+        ).first()
+
+        assert measurement is not None
+        assert measurement.mean_adc == 1234
+        assert measurement.moisture_percent == 56
+    finally:
+        db.close()
+
+def test_receive_measurement_unknown_device():
+
+    response = client.post(
+        "/devices/" + TEST_UNKNOWN_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": 1234,
+            "moisture_percent": 56,
+        },
+    )
+
+    assert response.status_code == 404
+
+def test_receive_measurement_unknown_component():
+
+    create_device()
+
+    response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_UNKNOWN_COMPONENT_LOCAL_ID,
+            "mean_adc": 1234,
+            "moisture_percent": 56,
+        },
+    )
+
+    assert response.status_code == 404
+
+def test_receive_measurement_rejects_missing_field():
+
+    create_device()
+
+    response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": 1234,
+        },
+    )
+
+    assert response.status_code == 422
+
+def test_receive_measurement_rejects_wrong_type():
+
+    create_device()
+
+    response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": "invalid",
+            "moisture_percent": 56,
+        },
+    )
+
+    assert response.status_code == 422
+
+def test_receive_measurement_stores_multiple_measurements_for_same_component():
+
+    create_device()
+
+    first_response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": 1234,
+            "moisture_percent": 56,
+        },
+    )
+
+    second_response = client.post(
+        "/devices/" + TEST_DEVICE_ID + "/measurements",
+        json={
+            "component_local_id": TEST_COMPONENT_LOCAL_ID,
+            "mean_adc": 1300,
+            "moisture_percent": 60,
+        },
+    )
+
+    assert first_response.status_code == 204
+    assert second_response.status_code == 204
+
+    db = TestingSessionLocal()
+    try:
+        measurements = db.query(Measurement).filter(
+            Measurement.device_id == TEST_DEVICE_ID,
+            Measurement.component_local_id == TEST_COMPONENT_LOCAL_ID,
+        ).all()
+
+        assert len(measurements) == 2
+    finally:
+        db.close()
+
 def test_registered_device_is_online():
     
     create_device()
@@ -218,7 +341,7 @@ def test_timed_out_device_is_offline():
 
     assert data["status"] == "OFFLINE"
 
-#-------------------SYNC-TESTS-------------------
+#-------------------COMPONENT-TESTS-------------------
 
 def test_register_device_requires_components():
     

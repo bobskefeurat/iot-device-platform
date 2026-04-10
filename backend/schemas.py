@@ -14,5 +14,5 @@ class DeviceInput(BaseModel):
 
 class MeasurementInput(BaseModel):
     component_local_id :str
-    mean_adc :str
-    moisture_percent :str
+    mean_adc : int
+    moisture_percent : int

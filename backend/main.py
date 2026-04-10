@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from datetime import datetime, timedelta, timezone
 
 from backend.database import Base, engine, get_db
-from backend.models import Device, Component
+from backend.models import Device, Component, Measurement
 from backend.schemas import DeviceInput, MeasurementInput
 
 HEARTBEAT_TIMEOUT = timedelta(seconds=90)
@@ -37,7 +37,9 @@ def get_devices(db = Depends(get_db)):
 @app.get("/devices/{id}")
 def get_device(id : str, db = Depends(get_db)):
 
-    device = db.query(Device).filter(Device.id == id).first()
+    device = db.query(Device).filter(
+        Device.id == id
+        ).first()
 
     if device is None:
         raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
@@ -48,7 +50,9 @@ def get_device(id : str, db = Depends(get_db)):
 @app.post("/devices")
 def register_device(payload : DeviceInput, db = Depends(get_db)):
     
-    device = db.query(Device).filter(Device.id == payload.id).first()
+    device = db.query(Device).filter(
+        Device.id == payload.id
+        ).first()
 
     if device is None:
          device = Device(id = payload.id)
@@ -67,7 +71,9 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
 @app.post("/devices/{id}/heartbeat", status_code = 204)
 def receive_device_heartbeat(id : str, db = Depends(get_db)):
 
-    device = db.query(Device).filter(Device.id == id).first()
+    device = db.query(Device).filter(
+        Device.id == id
+        ).first()
 
     if device is None:
         raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
@@ -81,10 +87,12 @@ def receive_device_heartbeat(id : str, db = Depends(get_db)):
 @app.delete("/devices/{id}")
 def delete_device(id : str, db = Depends(get_db)):
 
-    device = db.query(Device).filter(Device.id == id).first()
+    device = db.query(Device).filter(
+        Device.id == id
+        ).first()
 
     if device is None:
-        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+        raise HTTPException(status_code = 404, detail = "DEVICE NOT FOUND")
     
     db.delete(device)
     db.commit()
@@ -94,18 +102,36 @@ def delete_device(id : str, db = Depends(get_db)):
         "id" : id
     }
 
-@app.post("/devices/{id}/measurement")
+@app.post("/devices/{id}/measurements", status_code = 204)
 def receive_measurement(id : str, payload : MeasurementInput, db = Depends(get_db)):
     
-    device = db.query(Device).filter(Device.id == id).first()
+    device = db.query(Device).filter(
+        Device.id == id
+        ).first()
 
     if device is None:
-        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+        raise HTTPException(status_code = 404, detail = "DEVICE NOT FOUND")
+    
+    measurement_component = db.query(Component).filter(
+        Component.device_id == id,
+        Component.local_id == payload.component_local_id
+    ).first()
+
+    if measurement_component is None:
+        raise HTTPException(status_code = 404, detail = "COMPONENT NOT FOUND")
 
     
-    
-    
-    
+    measurement = Measurement(
+        device_id = id,
+        component_local_id = payload.component_local_id,
+        created_at = utc_now(),
+        mean_adc = payload.mean_adc,
+        moisture_percent = payload.moisture_percent,
+    )
+
+    db.add(measurement)
+    db.commit()
+
     return
 #----------------DEVICE-HELPERS----------------
 
