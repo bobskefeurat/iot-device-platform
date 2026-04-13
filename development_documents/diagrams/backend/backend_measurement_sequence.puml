@@ -1,0 +1,24 @@
+@startuml backend_measurement_sequence
+skinparam style strictuml
+title "Backend Measurement Sequence"
+
+participant "ESP32 Device" as esp32
+participant "Backend API" as backend
+participant "SQLite Database" as db
+
+esp32 --> backend : POST /devices/{id}/measurements {component_local_id, mean_adc, moisture_percent}
+
+backend -> db : Find device by id
+db --> backend : Device found
+
+backend -> db : Find component by device_id and local_id
+db --> backend : Component found
+
+backend -> backend : Create Measurement
+backend -> db : Commit changes
+db --> backend : Changes saved
+
+backend --> esp32 : HTTP 204 No Content
+
+
+@enduml

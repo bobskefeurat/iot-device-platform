@@ -1,0 +1,36 @@
+@startuml esp32_startup_flow
+skinparam style strictuml
+title "ESP32 Startup Flow"
+
+start
+:System init;
+:Read Wi-Fi MAC address;
+:Set device name and components;
+:Build device_id;
+
+while (Wi-Fi connected?) is (No)
+  :Delay 200 ms;
+endwhile (Yes)
+
+:Call register_device(device_id, device_name, components);
+
+if (Registration succeeded?) then (Yes)
+  :Log registration succeeded;
+else (No)
+  :Log registration failed;
+endif
+
+:Create Serial Command Task;
+:Create Live Reading Task;
+
+if (registered?) then (Yes)
+  :Create Heartbeat Task;
+else (No)
+  :Log device not registered;
+endif
+
+:Log "PlantStation started";
+:Enter main loop;
+stop
+
+@enduml

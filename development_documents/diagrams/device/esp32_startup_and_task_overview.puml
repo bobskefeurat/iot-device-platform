@@ -1,0 +1,25 @@
+@startuml esp32_startup_and_task_overview
+skinparam style strictuml
+skinparam ArrowFontSize 13
+skinparam nodesep 100
+skinparam ranksep 100
+skinparam linetype ortho
+title "ESP32 Startup and Task Overview"
+top to bottom direction
+
+rectangle "app_main" as app_main
+rectangle "Wi-Fi Manager" as wifi
+rectangle "Backend Client" as backend_client
+rectangle "Tasks" {
+  rectangle "Serial Command Task" as serial_task
+  rectangle "Live Reading Task" as live_task
+  rectangle "Heartbeat Task" as heartbeat_task
+}
+
+app_main --> wifi : initialize and wait for connection
+app_main --> backend_client : register device
+app_main -down-> serial_task : create task
+app_main -down-> live_task : create task
+app_main -down-> heartbeat_task : create task if registered
+
+@enduml

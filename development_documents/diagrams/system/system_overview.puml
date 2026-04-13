@@ -1,0 +1,12 @@
+@startuml system_overview
+
+title "IoT Device Platform - System Overview"
+
+rectangle "Backend API" as backend
+rectangle "Esp32 Device" as esp32
+database "SQLite Database" as db
+
+esp32 --> backend : HTTP/JSON
+backend --> db : SQLAlchemy
+
+@enduml

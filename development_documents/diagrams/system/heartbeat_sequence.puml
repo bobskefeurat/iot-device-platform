@@ -1,0 +1,30 @@
+@startuml heartbeat_sequence
+
+skinparam style strictuml
+title "Heartbeat Sequence"
+
+participant "ESP32 Device" as esp32
+participant "Backend API" as backend
+participant "SQLite Database" as db
+
+note over esp32
+Device is already registered
+end note
+
+loop Every 30 seconds while Wi-Fi is connected
+
+esp32 -> backend : POST /devices/{id}/heartbeat
+
+backend -> db : Find device by id
+
+db --> backend : Device found
+
+backend -> backend : Update last_seen
+
+backend -> db : Commit changes
+db --> backend : Changes saved
+
+backend --> esp32 : HTTP 204 No Content
+
+end
+@enduml

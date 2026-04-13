@@ -3,6 +3,6 @@ __pycache__/
 .venv/
 .vscode/
 backend/data/devices.db
-development_documents
+learning_documents
 tests/test_devices.db
 .codex

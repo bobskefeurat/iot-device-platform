@@ -1,0 +1,24 @@
+@startuml offline_detection_flow
+skinparam style strictuml
+title "Offline Detection Flow"
+
+start
+:Build device response;
+:Read last_seen;
+
+if (last_seen exists?) then (Yes)
+else (No)
+  :Set status OFFLINE;
+  stop
+endif
+
+:Normalize last_seen to UTC;
+if (utc_now - last_seen <= HEARTBEAT_TIMEOUT?) then (Yes)
+  :Set status ONLINE;
+else (No)
+  :Set status OFFLINE;
+endif
+stop
+
+
+@enduml

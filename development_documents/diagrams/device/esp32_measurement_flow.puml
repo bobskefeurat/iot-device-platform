@@ -1,0 +1,29 @@
+@startuml esp32_measurement_flow
+skinparam style strictuml
+title "ESP32 Measurement Flow"
+
+start
+:Live Reading Task running;
+
+while (Task loop) is (repeat)
+
+  if (live_reading_active?) then (Yes)
+    if (calibration_in_progress?) then (Yes)
+      :Delay 200 ms;
+    else (No)
+      :Read 10 ADC samples;
+      :Compute mean ADC value;
+      :Convert ADC to moisture percent;
+      :Update latest_mean_adc;
+      :Update latest_moisture_percent;
+      :Log live reading;
+      :Delay 2000 ms;
+    endif
+  else (No)
+    :Delay 200 ms;
+  endif
+
+endwhile (forever)
+
+stop
+@enduml

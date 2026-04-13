@@ -1,0 +1,52 @@
+@startuml esp32_calibration_flow
+skinparam style strictuml
+title "ESP32 Calibration Flow"
+
+start
+:User starts calibration from serial menu;
+
+if (calibration_in_progress?) then (Yes)
+  :Log "Calibration is already running";
+  stop
+else (No)
+  :Set calibration_in_progress = true;
+endif
+
+:Create calibration task;
+
+if (Task created?) then (No)
+  :Set calibration_in_progress = false;
+  :Log "Failed to start calibration task";
+  stop
+else (Yes)
+  :Log calibration started;
+endif
+
+:Start dry calibration;
+:Prompt user to place sensor in dry soil;
+:Run countdown;
+:Measure dry ADC value;
+
+:Start wet calibration;
+:Prompt user to place sensor in wet soil;
+:Run countdown;
+:Measure wet ADC value;
+
+:Open NVS calibration namespace;
+if (NVS opened?) then (No)
+  :Log NVS open failure;
+else (Yes)
+  :Save dry ADC value;
+  :Save wet ADC value;
+  :Commit calibration values;
+  :Close NVS;
+  :Log calibration saved;
+endif
+
+:Set calibration_in_progress = false;
+:Log calibration finished;
+:Print main menu;
+:Delete calibration task;
+stop
+
+@enduml

@@ -1,0 +1,15 @@
+@startuml backend_api_map
+skinparam style strictuml
+title "Backend API Map"
+
+rectangle "FastAPI Backend" as backend
+
+rectangle "General\n--\nGET /\nGET /health" as general
+rectangle "Devices\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as devices
+rectangle "Device Signals\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signals
+
+backend -- general
+backend -- devices
+backend -- signals
+
+@enduml
