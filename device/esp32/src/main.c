@@ -195,7 +195,7 @@ void app_main(void) {
     ESP_LOGI(TAG, "Device registration succeeded");
     xTaskCreate(heartbeat_task, "heartbeat_task", 4096, device_id, 5, NULL);
     } else {
-        ESP_LOGE(TAG, "Device registration failed");
+        ESP_LOGE(TAG, "Device not registered");
     }
 
 

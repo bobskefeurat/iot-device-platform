@@ -59,10 +59,9 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
          db.add(device)
 
     device.name = payload.name
+    device.last_seen = utc_now()
 
     sync_device_components(device, payload.components)                    
-
-    device.last_seen = utc_now()
 
     db.commit()
 
