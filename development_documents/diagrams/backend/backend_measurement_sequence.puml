@@ -11,7 +11,7 @@ esp32 --> backend : POST /devices/{id}/measurements {component_local_id, mean_ad
 backend -> db : Find device by id
 db --> backend : Device found
 
-backend -> db : Find component by device_id and local_id
+backend -> db : Find component by device_id and component_local_id
 db --> backend : Component found
 
 backend -> backend : Create Measurement

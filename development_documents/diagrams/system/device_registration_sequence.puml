@@ -7,7 +7,7 @@ participant "ESP32 Device" as esp32
 participant "Backend API" as backend
 participant "SQLite Database" as db
 
-esp32 -> backend : POST /devices {id, name, components[]}
+esp32 -> backend : POST /devices {id, name, device_components[]}
 backend -> db : Find device by id
 
 db --> backend : Device found / not found
@@ -20,7 +20,7 @@ db --> backend : Device created
 end
 
 backend -> backend : Update device metadata
-backend -> backend : Sync components
+backend -> backend : Sync device_components
 backend -> db : Commit changes
 db --> backend : Changes saved
 

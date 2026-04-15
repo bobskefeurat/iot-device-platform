@@ -1,25 +1,29 @@
 @startuml esp32_startup_and_task_overview
 skinparam style strictuml
 skinparam ArrowFontSize 13
-skinparam nodesep 100
-skinparam ranksep 100
-skinparam linetype ortho
-title "ESP32 Startup and Task Overview"
+skinparam nodesep 70
+skinparam ranksep 70
+title "ESP32 Startup and Runtime Overview"
 top to bottom direction
 
 rectangle "app_main" as app_main
 rectangle "Wi-Fi Manager" as wifi
+rectangle "Device Info" as device_info
 rectangle "Backend Client" as backend_client
 rectangle "Tasks" {
   rectangle "Serial Command Task" as serial_task
-  rectangle "Live Reading Task" as live_task
+  rectangle "Moisture Sensor Reading Task" as moisture_task
   rectangle "Heartbeat Task" as heartbeat_task
 }
 
 app_main --> wifi : initialize and wait for connection
+app_main --> device_info : setup device info
 app_main --> backend_client : register device
-app_main -down-> serial_task : create task
-app_main -down-> live_task : create task
-app_main -down-> heartbeat_task : create task if registered
+app_main --> serial_task : create tasks
+app_main --> moisture_task
+app_main --> heartbeat_task : if registered
+
+moisture_task --> device_info : get device_id and component info
+moisture_task --> backend_client : send measurement
 
 @enduml
