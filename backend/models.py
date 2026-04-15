@@ -14,7 +14,7 @@ class Measurement(Base):
     __table_args__ = (
         ForeignKeyConstraint(
             ["device_id", "component_local_id"],
-            ["components.device_id", "components.local_id"],
+            ["components.device_id", "components.component_local_id"],
         ),
     )
 
@@ -22,7 +22,7 @@ class Component(Base):
     __tablename__ = "components"
 
     device_id = Column(String, ForeignKey("devices.id"), primary_key = True)
-    local_id = Column(String, primary_key = True)
+    component_local_id = Column(String, primary_key = True)
     model_name = Column(String)
     component_type = Column(String)
 

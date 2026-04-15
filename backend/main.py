@@ -61,7 +61,7 @@ def register_device(payload : DeviceInput, db = Depends(get_db)):
     device.name = payload.name
     device.last_seen = utc_now()
 
-    sync_device_components(device, payload.components)                    
+    sync_device_components(device, payload.device_components)                    
 
     db.commit()
 
@@ -75,7 +75,7 @@ def receive_device_heartbeat(id : str, db = Depends(get_db)):
         ).first()
 
     if device is None:
-        raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
+        raise HTTPException(status_code=404, detail = "DEVICE NOT FOUND")
     
     device.last_seen = utc_now()
 
@@ -103,7 +103,7 @@ def delete_device(id : str, db = Depends(get_db)):
 
 @app.post("/devices/{id}/measurements", status_code = 204)
 def receive_measurement(id : str, payload : MeasurementInput, db = Depends(get_db)):
-    
+
     device = db.query(Device).filter(
         Device.id == id
         ).first()
@@ -113,13 +113,12 @@ def receive_measurement(id : str, payload : MeasurementInput, db = Depends(get_d
     
     measurement_component = db.query(Component).filter(
         Component.device_id == id,
-        Component.local_id == payload.component_local_id
+        Component.component_local_id == payload.component_local_id
     ).first()
 
     if measurement_component is None:
         raise HTTPException(status_code = 404, detail = "COMPONENT NOT FOUND")
 
-    
     measurement = Measurement(
         device_id = id,
         component_local_id = payload.component_local_id,
@@ -140,18 +139,18 @@ def sync_device_components(device, payload_components):
     incoming_local_ids = set()
 
     for component in device.components:
-        current_components[component.local_id] = component
+        current_components[component.component_local_id] = component
 
     for incoming_component in payload_components:
 
-        existing_component = current_components.get(incoming_component.local_id)
+        existing_component = current_components.get(incoming_component.component_local_id)
 
-        incoming_local_ids.add(incoming_component.local_id)
+        incoming_local_ids.add(incoming_component.component_local_id)
 
         if existing_component is None:
             device.components.append(
                 Component(
-                    local_id = incoming_component.local_id,
+                    component_local_id = incoming_component.component_local_id,
                     model_name = incoming_component.model_name,
                     component_type = incoming_component.component_type
                 )
@@ -199,7 +198,7 @@ def build_device_response(device):
             "last_seen" : normalize_utc_datetime(device.last_seen),
             "components" : [
                 {
-                    "local_id" : component.local_id,
+                    "component_local_id" : component.component_local_id,
                     "model_name" : component.model_name,
                     "component_type" : component.component_type
                 }
