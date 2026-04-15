@@ -15,7 +15,7 @@ static bool build_register_device_payload(
     size_t payload_size,
     const char *id,
     const char *name,
-    const backend_component_t *components,
+    const component_t *device_components,
     size_t component_count
 ) {
     char components_json[512];
@@ -54,9 +54,9 @@ static bool build_register_device_payload(
             components_json + offset,
             remaining,
             "{\"component_local_id\":\"%s\",\"model_name\":\"%s\",\"component_type\":\"%s\"}",
-            components[i].component_local_id,
-            components[i].model_name,
-            components[i].component_type
+            device_components[i].component_local_id,
+            device_components[i].model_name,
+            device_components[i].component_type
         );
 
         if (written < 0 || (size_t)written >= remaining) {
@@ -80,7 +80,7 @@ static bool build_register_device_payload(
     written = snprintf(
         payload,
         payload_size,
-        "{\"id\":\"%s\",\"name\":\"%s\",\"components\":%s}",
+        "{\"id\":\"%s\",\"name\":\"%s\",\"device_components\":%s}",
         id,
         name,
         components_json
@@ -93,16 +93,39 @@ static bool build_register_device_payload(
     return true;
 }
 
+static bool build_measurement_payload(
+    char *payload,
+    size_t payload_size,
+    const char *component_local_id,
+    int mean_adc,
+    int moisture_percent
+) {
+
+    int written = snprintf(
+        payload,
+        payload_size,
+        "{\"component_local_id\":\"%s\",\"mean_adc\":%d,\"moisture_percent\":%d}",
+        component_local_id,
+        mean_adc,
+        moisture_percent
+    );
+
+    if (written < 0 || (size_t)written >= payload_size ) {
+        return false;
+    }
+    return true;
+}
+
 
 bool register_device(
     const char *id, 
     const char *name, 
-    const backend_component_t *components,
+    const component_t *device_components,
     size_t component_count) {
 
     char payload[768];
 
-    if (!build_register_device_payload(payload, sizeof(payload), id, name, components, component_count)) {
+    if (!build_register_device_payload(payload, sizeof(payload), id, name, device_components, component_count)) {
         ESP_LOGE(TAG, "Failed to build device registration payload");
         return false;
     }
@@ -159,3 +182,46 @@ bool send_heartbeat(const char *id) {
     esp_http_client_cleanup(client);
     return false;
 }
+
+bool send_measurement(
+    const char *id,
+    const char *component_local_id,
+    int mean_adc,
+    int moisture_percent
+) {
+
+    char url[160];
+
+    snprintf(url, sizeof(url), "%s/%s/measurements", BACKEND_URL, id);
+
+    char payload[160];
+
+    if (!build_measurement_payload(payload, sizeof(payload), component_local_id, mean_adc, moisture_percent)) {
+        ESP_LOGE(TAG, "Failed to build measurement payload");
+        return false;
+    }
+
+    esp_http_client_config_t config = {
+        .url = url,
+    };
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    esp_http_client_set_method(client, HTTP_METHOD_POST);
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_post_field(client, payload, strlen(payload));
+
+    esp_err_t err = esp_http_client_perform(client);
+    int status_code = esp_http_client_get_status_code(client);
+
+    if (err == ESP_OK && status_code == 204) {
+        ESP_LOGI(TAG, "Measurement sent, status=%d", status_code);
+        esp_http_client_cleanup(client);
+        return true;
+    }
+
+    ESP_LOGE(TAG, "Measurement not sent, err=%s status=%d", esp_err_to_name(err), status_code);
+    esp_http_client_cleanup(client);
+    return false;
+}
+

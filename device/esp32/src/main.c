@@ -8,6 +8,7 @@
 #include "esp_mac.h"
 
 #include "device_menu.h"
+#include "device_info.h"
 #include "moisture_calibration.h"
 #include "moisture_sensor.h"
 #include "serial_console.h"
@@ -50,9 +51,13 @@ static void stop_live_reading(void) {
     live_reading_active = false;
 }
 
-static void live_reading_task(void *arg) {
+static void moisture_sensor_reading_task(void *arg) {
     (void)arg;
 
+    const component_t *components = get_device_components();
+    component_t moisture_sensor = components[0];
+    const char *moisture_sensor_local_id = moisture_sensor.component_local_id;
+    
     while (1) {
         if (!live_reading_active || calibration_in_progress) {
             vTaskDelay(pdMS_TO_TICKS(200));
@@ -61,12 +66,18 @@ static void live_reading_task(void *arg) {
 
         update_measurement();
         ESP_LOGI(TAG, "Live reading: adc=%u moisture=%u%%", latest_mean_adc, latest_moisture_percent);
+
+        if (!wifi_manager_is_connected()) {
+            continue;
+        }
+        send_measurement(get_device_id(), moisture_sensor_local_id, latest_mean_adc, latest_moisture_percent);
+
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
 
 static void heartbeat_task(void *arg) {
-    const char *device_id = (const char *)arg;
+    (void)arg;
 
     while (1) {
         vTaskDelay(pdMS_TO_TICKS(HEARTBEAT_INTERVAL_MS));
@@ -75,7 +86,7 @@ static void heartbeat_task(void *arg) {
             continue;
         }
 
-        send_heartbeat(device_id);
+        send_heartbeat(get_device_id());
     }
 }
 
@@ -155,32 +166,21 @@ void system_init(void) {
 }
 
 void app_main(void) {
-    system_init();
-
-    uint8_t mac[6];
-    char device_id[18];
-    ESP_ERROR_CHECK(esp_read_mac(mac, ESP_MAC_WIFI_STA));
     
-    const char *device_name = "ESP32";
-    const backend_component_t device_components[] = {
-        {
-            .component_local_id = "moisture_sensor_1",
-            .model_name = "Capacitive Soil Moisture Sensor V2.0.0",
-            .component_type = "sensor",
-        },
-    };
-    const size_t component_count = sizeof(device_components) / sizeof(device_components[0]);
-
-    snprintf(device_id, sizeof(device_id),
-         "%02X:%02X:%02X:%02X:%02X:%02X",
-         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    system_init();
+    setup_device_info();
 
     ESP_LOGI(TAG, "Waiting for WiFi connection...");
     while(!wifi_manager_is_connected()){
         vTaskDelay(pdMS_TO_TICKS(200));
     }
 
-    bool registered = register_device(device_id, device_name, device_components, component_count);
+    bool registered = register_device(
+        get_device_id(),
+        get_device_name(),
+        get_device_components(),
+        get_components_count()
+    );
 
     if (registered) {
         ESP_LOGI(TAG, "Device registration succeeded");
@@ -189,15 +189,13 @@ void app_main(void) {
     }
 
     xTaskCreate(serial_command_task, "serial_command_task", 4096, NULL, 5, NULL);
-    xTaskCreate(live_reading_task, "live_reading_task", 4096, NULL, 5, NULL);
+    xTaskCreate(moisture_sensor_reading_task, "moisture_sensor_reading_task", 4096, NULL, 5, NULL);
 
     if (registered) {
-    ESP_LOGI(TAG, "Device registration succeeded");
-    xTaskCreate(heartbeat_task, "heartbeat_task", 4096, device_id, 5, NULL);
+        xTaskCreate(heartbeat_task, "heartbeat_task", 4096, NULL, 5, NULL);
     } else {
         ESP_LOGE(TAG, "Device not registered");
     }
-
 
     ESP_LOGI(TAG, "PlantStation started");
 

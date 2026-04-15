@@ -3,19 +3,20 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef struct
-{
-    const char *component_local_id;
-    const char *model_name;
-    const char *component_type;
-} backend_component_t;
-
+#include "device_info.h"
 
 bool register_device(
     const char *id, 
     const char *name,
-    const backend_component_t *components,
+    const component_t *device_components,
     size_t component_count);
 
 bool send_heartbeat(const char *id);
+
+bool send_measurement(
+    const char *id,
+    const char *component_local_id,
+    int mean_adc,
+    int moisture_percent
+);
 
