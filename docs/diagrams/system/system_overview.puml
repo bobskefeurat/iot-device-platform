@@ -18,10 +18,12 @@ package "ESP32 Device" {
 }
 
 package "FastAPI Backend" {
-  rectangle "General API\n--\nGET /\nGET /health" as general_api
-  rectangle "Device API\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as device_api
-  rectangle "Signal API\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signal_api
-  rectangle "Domain Model\n--\nDevice\nComponent\nMeasurement" as domain_model
+  rectangle "main.py\n--\nFastAPI app\ninclude_router(...)" as backend_main
+  rectangle "api/health.py\n--\nGET /\nGET /health" as general_api
+  rectangle "api/devices.py\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as device_api
+  rectangle "api/signals.py\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signal_api
+  rectangle "services/devices.py\n--\nstatus + timestamps\ncomponent sync\nresponse building" as device_services
+  rectangle "models.py\nschemas.py\ndatabase.py" as backend_core
 }
 
 database "SQLite Database\n--\ndevices\ncomponents\nmeasurements" as db
@@ -47,11 +49,18 @@ heartbeat_task --> backend_client : send heartbeat
 backend_client --> device_api : registration
 backend_client --> signal_api : heartbeat / measurements
 
+backend_main --> general_api : include router
+backend_main --> device_api : include router
+backend_main --> signal_api : include router
+
 general_api -[hidden]-> device_api
 device_api -[hidden]-> signal_api
 
-device_api --> domain_model : query / update
-signal_api --> domain_model : query / update
-domain_model --> db : persist / load
+device_api --> device_services : use helper logic
+signal_api --> device_services : use utc_now()
+
+device_api --> backend_core : query / update
+signal_api --> backend_core : query / update
+backend_core --> db : persist / load
 
 @enduml
