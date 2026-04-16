@@ -2,13 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.database import get_db
 from backend.models import Component, Device, Measurement
-from backend.schemas import MeasurementInput
+from backend.schemas import MeasurementInput, HeartbeatResponse
+from backend.services.device_config import get_device_mode
 from backend.services.devices import utc_now
 
 router = APIRouter()
 
 
-@router.post("/devices/{id}/heartbeat", status_code=204)
+@router.post("/devices/{id}/heartbeat", response_model = HeartbeatResponse)
 def receive_device_heartbeat(id: str, db=Depends(get_db)):
     device = db.query(Device).filter(
         Device.id == id
@@ -18,10 +19,9 @@ def receive_device_heartbeat(id: str, db=Depends(get_db)):
         raise HTTPException(status_code=404, detail="DEVICE NOT FOUND")
 
     device.last_seen = utc_now()
-
     db.commit()
 
-    return
+    return HeartbeatResponse(mode = get_device_mode())
 
 
 @router.post("/devices/{id}/measurements", status_code=204)
