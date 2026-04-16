@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from backend.main import HEARTBEAT_TIMEOUT
 from backend.models import Device
+from backend.services.devices import HEARTBEAT_TIMEOUT
 from tests.data import TEST_DEVICE_ID, TEST_UNKNOWN_DEVICE_ID
 from tests.helpers import create_device
 from tests.support import TestingSessionLocal, client
