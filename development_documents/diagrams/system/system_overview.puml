@@ -1,12 +1,57 @@
 @startuml system_overview
+skinparam style strictuml
+skinparam packageStyle rectangle
+skinparam ArrowFontSize 12
+left to right direction
 
-title "IoT Device Platform - System Overview"
+title "IoT Device Platform - Current System Overview"
 
-rectangle "Backend API" as backend
-rectangle "Esp32 Device" as esp32
-database "SQLite Database" as db
+package "ESP32 Device" {
+  rectangle "app_main" as app_main
+  rectangle "Wi-Fi Manager" as wifi
+  rectangle "Device Info" as device_info
+  rectangle "Backend Client" as backend_client
+  rectangle "Serial Menu" as serial_menu
+  rectangle "Measurement Task" as measurement_task
+  rectangle "Heartbeat Task" as heartbeat_task
+  rectangle "Moisture Sensor\n+ Calibration / NVS" as sensor_runtime
+}
 
-esp32 --> backend : HTTP/JSON
-backend --> db : SQLAlchemy
+package "FastAPI Backend" {
+  rectangle "General API\n--\nGET /\nGET /health" as general_api
+  rectangle "Device API\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as device_api
+  rectangle "Signal API\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signal_api
+  rectangle "Domain Model\n--\nDevice\nComponent\nMeasurement" as domain_model
+}
+
+database "SQLite Database\n--\ndevices\ncomponents\nmeasurements" as db
+artifact "backend/config/device_config.json" as device_config_file
+
+note bottom of device_config_file
+Present in repo, but not yet
+integrated into backend logic
+end note
+
+app_main --> wifi : initialize / connect
+app_main --> device_info : build id + name
+app_main --> backend_client : register device
+app_main --> serial_menu : start task
+app_main --> measurement_task : start task
+app_main --> heartbeat_task : start if registered
+
+serial_menu --> sensor_runtime : live reading / calibration
+measurement_task --> sensor_runtime : sample moisture
+measurement_task --> backend_client : send measurement
+heartbeat_task --> backend_client : send heartbeat
+
+backend_client --> device_api : registration
+backend_client --> signal_api : heartbeat / measurements
+
+general_api -[hidden]-> device_api
+device_api -[hidden]-> signal_api
+
+device_api --> domain_model : query / update
+signal_api --> domain_model : query / update
+domain_model --> db : persist / load
 
 @enduml
