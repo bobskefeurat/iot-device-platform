@@ -2,14 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from backend.database import get_db
 from backend.models import Component, Device, Measurement
-from backend.schemas import MeasurementInput, HeartbeatResponse
-from backend.services.device_config import get_device_mode
+from backend.schemas import MeasurementInput
 from backend.services.devices import utc_now
 
 router = APIRouter()
 
 
-@router.post("/devices/{id}/heartbeat", response_model = HeartbeatResponse)
+@router.post("/devices/{id}/heartbeat")
 def receive_device_heartbeat(id: str, db=Depends(get_db)):
     device = db.query(Device).filter(
         Device.id == id
@@ -21,8 +20,14 @@ def receive_device_heartbeat(id: str, db=Depends(get_db)):
     device.last_seen = utc_now()
     db.commit()
 
-    return HeartbeatResponse(mode = get_device_mode())
+    config_id = None
 
+    if device.config is not None:
+        config_id = device.config.desired_config_id
+
+    return {
+       "desired_config_id" : config_id
+       }
 
 @router.post("/devices/{id}/measurements", status_code=204)
 def receive_measurement(id: str, payload: MeasurementInput, db=Depends(get_db)):

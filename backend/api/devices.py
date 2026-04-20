@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.database import get_db
-from backend.models import Device
+from backend.models import Device, DeviceConfig
 from backend.schemas import DeviceInput
 from backend.services.devices import build_device_response, sync_device_components, utc_now
+from backend.services.config import write_config_to_db
 
 router = APIRouter()
-
 
 @router.get("/devices")
 def get_devices(db=Depends(get_db)):
@@ -40,7 +40,14 @@ def register_device(payload: DeviceInput, db=Depends(get_db)):
 
     if device is None:
         device = Device(id=payload.id)
+        device_config = DeviceConfig(
+            device_id = device.id,
+            heartbeat_interval = 30,
+            desired_config_id = "default"
+        )
         db.add(device)
+        db.add(device_config)
+        
 
     device.name = payload.name
     device.last_seen = utc_now()

@@ -1,9 +1,0 @@
-{
-  "devices": {
-    "AA:BB:CC:DD:EE:FF": {
-      "name": "plant-station-1",
-      "heartbeat_interval_s": 10,
-      "reporting_interval_s": 60
-    }
-  }
-}

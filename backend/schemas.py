@@ -2,8 +2,6 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from backend.device_mode import ESPMode
-
 class ComponentInput(BaseModel):
     component_local_id : str
     model_name : str
@@ -19,5 +17,5 @@ class MeasurementInput(BaseModel):
     mean_adc : int
     moisture_percent : int
 
-class HeartbeatResponse(BaseModel):
-    mode : ESPMode
+class DeviceConfigInput(BaseModel):
+    applied_device_config_id : str
