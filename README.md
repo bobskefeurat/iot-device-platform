@@ -23,7 +23,7 @@ The repository currently contains:
 - a GitHub Actions workflow for backend tests
 - Docker support for the backend
 - ESP32 firmware source in `device/esp32/`
-- PlantUML-based system, backend, and device diagrams in `development_documents/diagrams/`
+- PlantUML-based system, backend, and device diagrams in `docs/diagrams/`
 
 Current firmware capabilities include:
 
@@ -34,10 +34,11 @@ Current firmware capabilities include:
 - serial command menu
 - local live readings from the moisture sensor
 - moisture calibration with values stored in NVS
+- measurement posting from the ESP32 to the backend while live readings are active
 
 Current limitation:
 
-- the backend measurement endpoint exists, but the ESP32 firmware does not yet post measurements to it
+- the backend exposes device config endpoints and returns `desired_config_id` on heartbeat, but the ESP32 firmware does not yet consume or sync backend-driven config changes
 
 ## Repository Layout
 
@@ -45,7 +46,7 @@ Current limitation:
 backend/                         FastAPI app, database setup, schemas, models
 device/esp32/                    ESP32 firmware source (PlatformIO / ESP-IDF)
 tests/                           Backend API tests
-development_documents/diagrams/  PlantUML diagrams for system, backend, and device
+docs/diagrams/                   PlantUML diagrams for system, backend, and device
 scripts/                         Local development helpers and tmux/session scripts
 .github/workflows/               Backend CI workflow
 ```
@@ -90,8 +91,10 @@ Current backend endpoints:
 - `GET /devices` lists registered devices
 - `GET /devices/{id}` returns one device with status and components
 - `POST /devices` registers or updates a device and reconciles its components
-- `POST /devices/{id}/heartbeat` updates `last_seen`
+- `POST /devices/{id}/heartbeat` updates `last_seen` and returns the current `desired_config_id`
 - `POST /devices/{id}/measurements` stores a measurement for an existing component
+- `POST /devices/{id}/config/update` updates desired device config
+- `POST /devices/{id}/config/sync` syncs applied device config state
 - `DELETE /devices/{id}` deletes a device and its components
 
 Example device registration:
@@ -102,9 +105,9 @@ curl -X POST http://127.0.0.1:8000/devices \
   -d '{
     "id": "AA:BB:CC:DD:EE:FF",
     "name": "demo-device",
-    "components": [
+    "device_components": [
       {
-        "local_id": "moisture_sensor_1",
+        "component_local_id": "moisture_sensor_1",
         "model_name": "Capacitive Soil Moisture Sensor V2.0.0",
         "component_type": "sensor"
       }
@@ -163,9 +166,9 @@ pio device monitor
 
 PlantUML diagrams are organized by area:
 
-- `development_documents/diagrams/system/`
-- `development_documents/diagrams/backend/`
-- `development_documents/diagrams/device/`
+- `docs/diagrams/system/`
+- `docs/diagrams/backend/`
+- `docs/diagrams/device/`
 
 These diagrams currently cover:
 
@@ -181,4 +184,5 @@ These diagrams currently cover:
 
 - Device status is derived from the latest heartbeat timestamp.
 - Measurements are stored in the backend database as historical records.
-- Firmware and backend integration is still incremental; backend API examples in this README reflect the current backend contract.
+- Device config state is stored in the backend database and is currently only partially integrated with the firmware.
+- Firmware and backend integration is still incremental; the API examples in this README reflect the current backend implementation.

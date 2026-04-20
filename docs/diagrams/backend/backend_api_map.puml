@@ -9,26 +9,20 @@ package "FastAPI Backend" {
   rectangle "api/health.py\n--\nGET /\nGET /health" as general
   rectangle "api/devices.py\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as devices
   rectangle "api/signals.py\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signals
+  rectangle "api/config.py\n--\nPOST /devices/{id}/config/update\nPOST /devices/{id}/config/sync" as config
   rectangle "services/devices.py\n--\nshared device logic" as device_services
-  artifact "services/device_config.py" as device_config_service
-  artifact "device_mode.py" as device_mode
+  rectangle "services/config.py\n--\nconfig write + response helpers" as config_services
 
   main --> general
   main --> devices
   main --> signals
+  main --> config
   devices --> device_services
   signals --> device_services
+  config --> config_services
   general -[hidden]-> devices
   devices -[hidden]-> signals
+  signals -[hidden]-> config
 }
-
-note bottom of device_config_service
-Scaffolded, not yet used by routes
-end note
-
-note bottom of device_mode
-Defined as project structure,
-not yet wired into API flow
-end note
 
 @enduml

@@ -20,11 +20,12 @@ backend -> db : Find device by id
 db --> backend : Device found
 
 backend -> backend : Update last_seen
+backend -> backend : Read desired_config_id from device_config
 
 backend -> db : Commit changes
 db --> backend : Changes saved
 
-backend --> esp32 : HTTP 204 No Content
+backend --> esp32 : HTTP 200 {desired_config_id}
 
 end
 @enduml

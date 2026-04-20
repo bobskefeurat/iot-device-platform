@@ -25,8 +25,28 @@ entity "measurements" as measurements {
   moisture_percent : Integer
 }
 
+entity "device_config" as device_config {
+  * device_id : String
+  --
+  heartbeat_interval : Integer
+  desired_config_id : String
+  applied_config_id : String
+}
+
+entity "sensor_config" as sensor_config {
+  * device_id : String
+  * component_local_id : String
+  --
+  is_enabled : Boolean
+  sample_interval : Integer
+  desired_config_id : String
+  applied_config_id : String
+}
+
 devices ||--o{ components : device_id
 components ||--o{ measurements : (device_id, local_id)
+devices ||--o| device_config : device_id
+components ||--o| sensor_config : (device_id, local_id)
 
 note right of components
 PK = (device_id, local_id)
@@ -35,6 +55,17 @@ end note
 
 note right of measurements
 PK = (device_id, component_local_id, created_at)
+Composite FK:
+(device_id, component_local_id) ->
+components(device_id, local_id)
+end note
+
+note right of device_config
+PK/FK device_id -> devices.id
+end note
+
+note right of sensor_config
+PK = (device_id, component_local_id)
 Composite FK:
 (device_id, component_local_id) ->
 components(device_id, local_id)

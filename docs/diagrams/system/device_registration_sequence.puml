@@ -16,6 +16,7 @@ alt Device found
 backend -> backend : Use existing device
 else Device not found
 backend -> db : Create device
+backend -> db : Create device_config
 db --> backend : Device created
 end
 

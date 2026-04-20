@@ -7,6 +7,7 @@ title "ESP32 Startup and Runtime Overview"
 top to bottom direction
 
 rectangle "app_main" as app_main
+rectangle "device_startup_run" as startup
 rectangle "Wi-Fi Manager" as wifi
 rectangle "Device Info" as device_info
 rectangle "Backend Client" as backend_client
@@ -15,15 +16,19 @@ rectangle "Tasks" {
   rectangle "Moisture Sensor Reading Task" as moisture_task
   rectangle "Heartbeat Task" as heartbeat_task
 }
+rectangle "device_runtime_start" as runtime_start
 
-app_main --> wifi : initialize and wait for connection
-app_main --> device_info : setup device info
-app_main --> backend_client : register device
-app_main --> serial_task : create tasks
-app_main --> moisture_task
-app_main --> heartbeat_task : if registered
+app_main --> startup : run startup flow
+startup --> wifi : wait for connection
+startup --> device_info : setup id + components
+startup --> backend_client : register device
+startup --> runtime_start : start runtime even if registration fails
+runtime_start --> serial_task : create task
+runtime_start --> moisture_task : create task
+startup --> heartbeat_task : create only if registered
 
 moisture_task --> device_info : get device_id and component info
 moisture_task --> backend_client : send measurement
+heartbeat_task --> backend_client : send heartbeat
 
 @enduml

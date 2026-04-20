@@ -22,17 +22,13 @@ package "FastAPI Backend" {
   rectangle "api/health.py\n--\nGET /\nGET /health" as general_api
   rectangle "api/devices.py\n--\nGET /devices\nGET /devices/{id}\nPOST /devices\nDELETE /devices/{id}" as device_api
   rectangle "api/signals.py\n--\nPOST /devices/{id}/heartbeat\nPOST /devices/{id}/measurements" as signal_api
+  rectangle "api/config.py\n--\nPOST /devices/{id}/config/update\nPOST /devices/{id}/config/sync" as config_api
   rectangle "services/devices.py\n--\nstatus + timestamps\ncomponent sync\nresponse building" as device_services
+  rectangle "services/config.py\n--\nconfig write + response helpers" as config_services
   rectangle "models.py\nschemas.py\ndatabase.py" as backend_core
 }
 
-database "SQLite Database\n--\ndevices\ncomponents\nmeasurements" as db
-artifact "backend/config/device_config.json" as device_config_file
-
-note bottom of device_config_file
-Present in repo, but not yet
-integrated into backend logic
-end note
+database "SQLite Database\n--\ndevices\ncomponents\nmeasurements\ndevice_config\nsensor_config" as db
 
 app_main --> wifi : initialize / connect
 app_main --> device_info : build id + name
@@ -44,7 +40,7 @@ app_main --> heartbeat_task : start if registered
 serial_menu --> sensor_runtime : live reading / calibration
 measurement_task --> sensor_runtime : sample moisture
 measurement_task --> backend_client : send measurement
-heartbeat_task --> backend_client : send heartbeat
+heartbeat_task --> backend_client : send heartbeat\nreceive desired_config_id (unused)
 
 backend_client --> device_api : registration
 backend_client --> signal_api : heartbeat / measurements
@@ -52,15 +48,19 @@ backend_client --> signal_api : heartbeat / measurements
 backend_main --> general_api : include router
 backend_main --> device_api : include router
 backend_main --> signal_api : include router
+backend_main --> config_api : include router
 
 general_api -[hidden]-> device_api
 device_api -[hidden]-> signal_api
+signal_api -[hidden]-> config_api
 
 device_api --> device_services : use helper logic
 signal_api --> device_services : use utc_now()
+config_api --> config_services : write config / build response
 
 device_api --> backend_core : query / update
 signal_api --> backend_core : query / update
+config_api --> backend_core : query / update
 backend_core --> db : persist / load
 
 @enduml

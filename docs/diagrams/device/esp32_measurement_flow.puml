@@ -17,6 +17,10 @@ while (Task loop) is (repeat)
       :Update latest_mean_adc;
       :Update latest_moisture_percent;
       :Log live reading;
+      if (Wi-Fi connected?) then (Yes)
+        :POST measurement to backend;
+      else (No)
+      endif
       :Delay 2000 ms;
     endif
   else (No)
