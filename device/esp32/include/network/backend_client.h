@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "device_info.h"
+#include "device/device_components.h"
 
 bool register_device(
     const char *id, 
@@ -19,4 +19,3 @@ bool send_measurement(
     int mean_adc,
     int moisture_percent
 );
-

@@ -1,4 +1,4 @@
-#include "serial_console.h"
+#include "drivers/serial_console.h"
 
 #include <stdio.h>
 #include <stddef.h>

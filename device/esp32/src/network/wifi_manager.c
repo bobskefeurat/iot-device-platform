@@ -1,5 +1,5 @@
-#include "wifi_manager.h"
-#include "local_config.h"
+#include "network/wifi_manager.h"
+#include "config/local_config.h"
 
 #include <stdio.h>
 #include "esp_netif.h"

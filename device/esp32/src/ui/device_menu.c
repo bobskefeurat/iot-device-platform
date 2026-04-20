@@ -1,4 +1,4 @@
-#include "device_menu.h"
+#include "ui/device_menu.h"
 
 #include <string.h>
 #include "esp_log.h"
