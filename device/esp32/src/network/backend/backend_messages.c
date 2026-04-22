@@ -1,6 +1,9 @@
-#include "network/backend_payloads.h"
+#include "network/backend/backend_messages.h"
 
 #include <stdio.h>
+#include <string.h>
+
+//---------------------OUTBOUND MESSAGES---------------------
 
 bool build_register_device_payload(
     char *payload,
@@ -86,4 +89,62 @@ bool build_measurement_payload(
     );
 
     return written >= 0 && (size_t)written < payload_size;
+}
+
+//---------------------INBOUND MESSAGES---------------------
+
+bool extract_backend_field_value(
+    const char *response_buffer,
+    const char *field_name,
+    char *field_value,
+    size_t field_value_size
+) {
+
+    if(
+        (response_buffer == NULL)||
+        (field_name == NULL)||
+        (field_value == NULL)||
+        (field_value_size == 0)
+    ) {
+        return false;
+    }
+
+    field_value[0] = '\0';
+
+    const char *field_position = strstr(response_buffer, field_name);
+    if (field_position == NULL) {
+        return false;
+    }
+
+    const char *value_start = strchr(field_position, ':');
+    if (value_start == NULL) {
+        return false;
+    }
+
+    while (
+        (*value_start == ':')||
+        (*value_start == ' ')||
+        (*value_start == '\"')
+    ) {
+        value_start++;
+    }
+    
+    const char *value_end = value_start;
+    while (
+        (*value_end != '\0')&&
+        (*value_end != '\"')&&
+        (*value_end != '}')
+    ) {
+        value_end++;
+    }
+
+    size_t value_length = (size_t)(value_end - value_start);
+    if (value_length >= field_value_size) {
+        return false;
+    }
+
+    memcpy(field_value, value_start, value_length);
+    field_value[value_length] = '\0';
+
+    return true;
 }

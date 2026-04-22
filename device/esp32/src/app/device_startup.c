@@ -1,6 +1,7 @@
 #include "app/device_startup.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -10,24 +11,50 @@
 #include "device/device_components.h"
 #include "device/device_identity.h"
 #include "device/device_setup.h"
-#include "network/backend_client.h"
+#include "device/device_config.h"
+#include "network/backend/backend_client.h"
+#include "network/backend/backend_messages.h"
 #include "network/wifi_manager.h"
 
-#define HEARTBEAT_INTERVAL_MS 30000
+#define WIFI_RETRY_DELAY_MS 500
 
 static const char *TAG = "PlantStation";
 
 static void heartbeat_task(void *arg) {
     (void)arg;
 
-    while (1) {
-        vTaskDelay(pdMS_TO_TICKS(HEARTBEAT_INTERVAL_MS));
+    size_t response_buffer_size = 96;
+    char response_buffer[response_buffer_size];
 
-        if (!wifi_manager_is_connected()) {
-            continue;
+    size_t config_id_buffer_size = 64;
+    char config_id_buffer[config_id_buffer_size];
+
+    while (1) {
+        
+        while (!wifi_manager_is_connected()) {
+            vTaskDelay(pdMS_TO_TICKS(WIFI_RETRY_DELAY_MS));
         }
 
-        send_heartbeat(get_device_id());
+        bool heartbeat_sent = send_heartbeat(get_device_id(), response_buffer, response_buffer_size);
+        bool value_extracted = false;
+
+        if (heartbeat_sent) {
+            value_extracted = extract_backend_field_value(
+                response_buffer,
+                "desired_config_id",
+                config_id_buffer,
+                config_id_buffer_size
+            );
+        }
+
+        if (heartbeat_sent && value_extracted) {
+            int comparison = strcmp(get_applied_config_id(), config_id_buffer);
+            if (comparison != 0) {
+                //TODO start config task
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(get_heartbeat_interval()));
     }
 }
 

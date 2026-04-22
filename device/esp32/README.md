@@ -16,17 +16,11 @@ This directory is organized by responsibility instead of keeping all modules fla
 - `src/features/moisture` and `include/features/moisture`
   - Moisture-specific feature logic such as calibration.
 - `src/network` and `include/network`
-  - Wi-Fi connectivity and backend HTTP communication.
+  - Network-related modules.
+  - `wifi_manager` handles Wi-Fi connectivity.
+  - `http_client` provides generic HTTP transport helpers.
+  - `backend/` contains backend-specific API client and payload code.
 - `src/ui` and `include/ui`
   - Serial menu presentation and command handling.
 - `include/config`
   - Local configuration headers such as Wi-Fi credentials and backend URL.
-
-## Intent
-
-The goal is to make the ESP32 side read more like the backend:
-
-- app flow is separate from implementation details
-- hardware access is separate from feature logic
-- network concerns are separate from UI and runtime behavior
-- file paths reflect ownership and responsibility

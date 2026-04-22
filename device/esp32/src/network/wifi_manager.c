@@ -8,10 +8,16 @@
 #include "esp_wifi.h"
 #include "lwip/inet.h"
 
+//---------------------WI-FI STATE---------------------
+
 static const char *TAG = "WiFi";
 static bool wifi_connected = false;
 static char wifi_ip_address[16] = "not assigned";
 static int32_t last_disconnect_reason = -1;
+
+//---------------------EVENT HANDLING---------------------
+
+// Handles the ongoing Wi-Fi connection lifecycle after the manager has been initialized.
 
 static void wifi_manager_event_handler(void *arg,
                                        esp_event_base_t event_base,
@@ -38,6 +44,8 @@ static void wifi_manager_event_handler(void *arg,
     }
 }
 
+//---------------------INITIALIZATION---------------------
+
 void wifi_manager_init(void) {
     wifi_config_t wifi_config = {
         .sta = {
@@ -61,6 +69,8 @@ void wifi_manager_init(void) {
 
     ESP_LOGI(TAG, "WiFi station mode started");
 }
+
+//---------------------STATUS ACCESS---------------------
 
 bool wifi_manager_is_connected(void) {
     return wifi_connected;

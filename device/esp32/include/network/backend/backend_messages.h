@@ -21,3 +21,10 @@ bool build_measurement_payload(
     int mean_adc,
     int moisture_percent
 );
+
+bool extract_backend_field_value(
+    const char *response_buffer,
+    const char *field_name,
+    char *field_value,
+    size_t field_value_size
+);

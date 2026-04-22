@@ -1,20 +1,24 @@
-#include "network/backend_client.h"
+#include "network/backend/backend_client.h"
 #include "config/local_config.h"
 
 #include <stdio.h>
 
 #include "esp_log.h"
 
-#include "network/backend_payloads.h"
+#include "network/backend/backend_messages.h"
 #include "network/http_client.h"
 
 static const char *TAG = "backend-client";
+
+//--------------------------------BACKEND-OPERATIONS--------------------------------
+// This layer defines what the device sends to the backend, while the HTTP layer handles how requests are sent.
 
 bool register_device(
     const char *id, 
     const char *name, 
     const component_t *device_components,
-    size_t component_count) {
+    size_t component_count
+) {
 
     char payload[768];
 
@@ -26,11 +30,11 @@ bool register_device(
     return http_client_post_json_with_status_range(BACKEND_URL, payload, 200, 299);
 }
 
-bool send_heartbeat(const char *id) {
+bool send_heartbeat(const char *id, char *response_buffer, size_t buffer_size) {
     char url[160];
-
     snprintf(url, sizeof(url), "%s/%s/heartbeat", BACKEND_URL, id);
-    return http_client_post(url, 204);
+
+    return http_client_post_with_response(url, response_buffer, buffer_size, 200);
 }
 
 bool send_measurement(

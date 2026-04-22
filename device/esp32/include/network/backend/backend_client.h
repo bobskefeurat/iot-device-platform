@@ -9,9 +9,14 @@ bool register_device(
     const char *id, 
     const char *name,
     const component_t *device_components,
-    size_t component_count);
+    size_t component_count
+);
 
-bool send_heartbeat(const char *id);
+bool send_heartbeat(
+    const char *id, 
+    char *response_buffer, 
+    size_t buffer_size
+);
 
 bool send_measurement(
     const char *id,

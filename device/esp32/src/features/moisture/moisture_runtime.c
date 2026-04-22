@@ -12,7 +12,7 @@
 #include "drivers/moisture_sensor.h"
 #include "features/moisture/moisture_calibration_flow.h"
 #include "features/moisture/moisture_mapping.h"
-#include "network/backend_client.h"
+#include "network/backend/backend_client.h"
 #include "network/wifi_manager.h"
 
 #define MOISTURE_SENSOR_PIN ADC_CHANNEL_7
