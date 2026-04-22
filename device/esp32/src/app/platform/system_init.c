@@ -1,10 +1,9 @@
-#include "app/system_init.h"
+#include "app/platform.h"
 
 #include "esp_log.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
-#include "app/device_runtime.h"
 #include "network/wifi_manager.h"
 
 void system_init(void) {
@@ -19,6 +18,5 @@ void system_init(void) {
     esp_log_level_set("HTTP_CLIENT", ESP_LOG_WARN);
     esp_log_level_set("esp-tls", ESP_LOG_WARN);
 
-    device_runtime_init();
     wifi_manager_init();
 }

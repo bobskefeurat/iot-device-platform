@@ -1,8 +1,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "app/device_startup.h"
-#include "app/system_init.h"
+#include "app/platform.h"
+#include "app/startup.h"
 
 void app_main(void) {
     system_init();
