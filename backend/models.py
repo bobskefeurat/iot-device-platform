@@ -63,6 +63,4 @@ class Device(Base):
     last_seen = Column(DateTime(timezone = True))
 
     components = relationship("Component", back_populates="device", cascade="all, delete-orphan")
-    config = relationship("DeviceConfig", back_populates="device")
-
-
+    config = relationship("DeviceConfig", back_populates="device", uselist=False)

@@ -8,6 +8,7 @@
 #include "esp_log.h"
 
 #include "app/runtime/wifi_wait.h"
+#include "app/runtime/config_task.h"
 #include "device/device_config.h"
 #include "device/device_identity.h"
 #include "network/backend/backend_client.h"
@@ -31,6 +32,17 @@ static void heartbeat_task(void *arg) {
         bool value_extracted = false;
 
         if (heartbeat_sent) {
+            ESP_LOGI(
+                TAG,
+                "Heartbeat sent successfully, interval=%d seconds, response=%s",
+                get_heartbeat_interval(),
+                response_buffer
+            );
+        } else {
+            ESP_LOGE(TAG, "Heartbeat request failed");
+        }
+
+        if (heartbeat_sent) {
             value_extracted = extract_backend_field_value(
                 response_buffer,
                 "desired_config_id",
@@ -40,9 +52,24 @@ static void heartbeat_task(void *arg) {
         }
 
         if (heartbeat_sent && value_extracted) {
+            ESP_LOGI(
+                TAG,
+                "Heartbeat config state: applied=%s desired=%s",
+                get_applied_config_id(),
+                config_id_buffer
+            );
+        }
+
+        if (heartbeat_sent && value_extracted) {
             int comparison = strcmp(get_applied_config_id(), config_id_buffer);
             if (comparison != 0) {
-                //TODO start config task
+                ESP_LOGI(
+                    TAG,
+                    "Config mismatch detected: applied=%s desired=%s",
+                    get_applied_config_id(),
+                    config_id_buffer
+                );
+                config_task_start(config_id_buffer);
             }
         }
 

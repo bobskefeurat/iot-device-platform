@@ -24,3 +24,10 @@ bool send_measurement(
     int mean_adc,
     int moisture_percent
 );
+
+bool sync_device_config(
+    const char *id,
+    const char *applied_config_id,
+    char *response_buffer,
+    size_t buffer_size
+);

@@ -91,6 +91,21 @@ bool build_measurement_payload(
     return written >= 0 && (size_t)written < payload_size;
 }
 
+bool build_config_sync_payload(
+    char *payload,
+    size_t payload_size,
+    const char *applied_config_id
+) {
+    int written = snprintf(
+        payload,
+        payload_size,
+        "{\"applied_device_config_id\":\"%s\"}",
+        applied_config_id
+    );
+
+    return written >= 0 && (size_t)written < payload_size;
+}
+
 //---------------------INBOUND MESSAGES---------------------
 
 bool extract_backend_field_value(

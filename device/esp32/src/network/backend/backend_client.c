@@ -57,3 +57,28 @@ bool send_measurement(
 
     return http_client_post_json(url, payload, 204);
 }
+
+bool sync_device_config(
+    const char *id,
+    const char *applied_config_id,
+    char *response_buffer,
+    size_t buffer_size
+) {
+    char url[160];
+    snprintf(url, sizeof(url), "%s/%s/config/sync", BACKEND_URL, id);
+
+    char payload[128];
+    if (!build_config_sync_payload(payload, sizeof(payload), applied_config_id)) {
+        ESP_LOGE(TAG, "Failed to build config sync payload");
+        return false;
+    }
+
+    return http_client_post_json_with_response_and_status_range(
+        url,
+        payload,
+        response_buffer,
+        buffer_size,
+        200,
+        404
+    );
+}

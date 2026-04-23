@@ -22,6 +22,12 @@ bool build_measurement_payload(
     int moisture_percent
 );
 
+bool build_config_sync_payload(
+    char *payload,
+    size_t payload_size,
+    const char *applied_config_id
+);
+
 bool extract_backend_field_value(
     const char *response_buffer,
     const char *field_name,
