@@ -19,6 +19,7 @@ The repository currently contains:
 - device registration with component reconciliation
 - heartbeat ingest and derived `ONLINE` / `OFFLINE` device status
 - backend measurement ingest with persisted measurement history
+- backend-managed desired/applied device config state
 - automated backend tests in `tests/`
 - a GitHub Actions workflow for backend tests
 - Docker support for the backend
@@ -31,14 +32,12 @@ Current firmware capabilities include:
 - device ID generation from Wi-Fi MAC address
 - device registration client logic
 - heartbeat task
+- config sync task triggered by heartbeat `desired_config_id` changes
 - serial command menu
 - local live readings from the moisture sensor
 - moisture calibration with values stored in NVS
 - measurement posting from the ESP32 to the backend while live readings are active
-
-Current limitation:
-
-- the backend exposes device config endpoints and returns `desired_config_id` on heartbeat, but the ESP32 firmware does not yet consume or sync backend-driven config changes
+- backend-driven heartbeat interval updates applied on the device after config sync
 
 ## Repository Layout
 
@@ -86,7 +85,6 @@ docker run --rm -p 8000:8000 iot-device-platform
 
 Current backend endpoints:
 
-- `GET /` returns a basic startup message
 - `GET /health` returns backend health status
 - `GET /devices` lists registered devices
 - `GET /devices/{id}` returns one device with status and components
@@ -133,8 +131,7 @@ Install test dependencies and run the backend test suite:
 
 ```bash
 pip install -r requirements.txt
-pip install pytest httpx
-pytest -q
+.venv/bin/pytest -q
 ```
 
 The tests use an isolated SQLite database under `tests/`.
@@ -143,7 +140,11 @@ The tests use an isolated SQLite database under `tests/`.
 
 The ESP32 project expects a local config file that is not committed to git.
 
-Use `device/esp32/include/local_config.example.h` as the template for your local config and set:
+Use [device/esp32/include/config/local_config.example.h](/home/kungs/iot-device-platform/device/esp32/include/config/local_config.example.h:1) as the template for your local config and create:
+
+- `device/esp32/include/config/local_config.h`
+
+Then set:
 
 - `WIFI_SSID`
 - `WIFI_PASSWORD`
@@ -162,6 +163,15 @@ pio run -t upload
 pio device monitor
 ```
 
+Firmware structure is organized by responsibility:
+
+- `src/app` and `include/app` for startup and runtime orchestration
+- `src/device` and `include/device` for device identity and config state
+- `src/drivers` and `include/drivers` for hardware-facing modules
+- `src/features/moisture` and `include/features/moisture` for moisture-specific logic
+- `src/network` and `include/network` for Wi-Fi, HTTP transport, and backend API calls
+- `src/ui` and `include/ui` for the serial console and menu flow
+
 ## Project Documentation
 
 PlantUML diagrams are organized by area:
@@ -174,15 +184,16 @@ These diagrams currently cover:
 
 - system overview
 - device registration and heartbeat flows
+- device config sync flow
 - backend domain model and ERD
 - backend API map
 - backend measurement flow
 - backend offline detection flow
-- ESP32 startup, calibration, and measurement flows
+- ESP32 startup, calibration, measurement, and config-sync flows
 
 ## Notes
 
 - Device status is derived from the latest heartbeat timestamp.
 - Measurements are stored in the backend database as historical records.
-- Device config state is stored in the backend database and is currently only partially integrated with the firmware.
+- Device config state is stored in the backend database and synced to the firmware through the heartbeat/config-sync flow.
 - Firmware and backend integration is still incremental; the API examples in this README reflect the current backend implementation.
